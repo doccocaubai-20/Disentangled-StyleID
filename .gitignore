@@ -1,0 +1,27 @@
+# Model weights / checkpoints (quá lớn cho GitHub)
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+ckpt/
+
+# Datasets
+SKSF-A.zip
+SKSF-A_data/
+*.zip
+
+# Paper PDF (20MB, tải từ arXiv)
+2604.21689v1.pdf
+
+# Python
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+venv/
+.venv/
+
+# Misc
+.DS_Store
+Thumbs.db
+wandb/

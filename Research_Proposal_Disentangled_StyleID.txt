@@ -1,0 +1,230 @@
+================================================================================
+                    ĐỀ CƯƠNG NGHIÊN CỨU CHI TIẾT (RESEARCH PROPOSAL)
+================================================================================
+
+TÊN ĐỀ TÀI DỰ KIẾN:
+- Tiếng Anh: Disentangled-StyleID: Explicit Facial Identity and Style Disentanglement 
+             for Robust Stylization-Agnostic Recognition
+- Tiếng Việt: Nhận diện khuôn mặt bất biến trước biến đổi nghệ thuật thông qua phân tách 
+             tường minh không gian Danh tính và Phong cách
+
+MỤC TIÊU CÔNG BỐ (TARGET VENUES):
+- Hội nghị quốc tế hàng đầu: IEEE/CVF CVPR, ECCV, WACV, ACM SIGGRAPH Asia
+- Tạp chí chuyên ngành uy tín: Computer Graphics Forum, IEEE TIP
+
+================================================================================
+1. TỔNG QUAN & ĐỘNG LỰC NGHIÊN CỨU (MOTIVATION)
+================================================================================
+
+1.1. Bối cảnh thực tiễn
+Trong kỷ nguyên AI tạo sinh (Generative AI), việc chuyển đổi phong cách khuôn mặt 
+(Face Stylization thành tranh 3D hoạt hình, anime, cyberpunk, tranh màu nước...) 
+ngày càng trở nên phổ biến trên các nền tảng avatar, mạng xã hội và các mô hình đa 
+phương thức (ChatGPT, Gemini). Trong các ứng dụng này, việc "Bảo toàn danh tính khuôn 
+mặt" (Facial Identity Preservation) là yêu cầu sống còn.
+
+Tuy nhiên, các mô hình nhận diện khuôn mặt kinh điển (ArcFace, AdaFace) được huấn luyện 
+trên ảnh người thật nên rất dễ bị "mù" khi gặp ảnh nghệ thuật — chúng thường nhầm lẫn 
+giữa sự thay đổi về màu sắc, chất liệu cọ vẽ với sự thay đổi danh tính con người.
+
+1.2. Khoảng trống nghiên cứu của bài báo gốc (StyleID - SIGGRAPH 2026)
+Bài báo StyleID (Yun et al., SIGGRAPH 2026) đã có bước tiến lớn khi sử dụng CLIP-ViT 
+kết hợp LoRA và Supervised Contrastive Loss (SupConLoss) để ép mô hình phớt lờ phong 
+cách nghệ thuật. Tuy nhiên, bài báo vẫn tồn tại hạn chế cốt lõi:
+
+- Vấn đề "Vướng víu biểu diễn" (Feature Entanglement):
+  StyleID chỉ sử dụng DUY NHẤT một vector đặc trưng 768 chiều cho mọi thứ. Mô hình 
+  cố gắng ép vector này phớt lờ phong cách một cách "ngầm định" (implicit).
+- Hậu quả thực tế:
+  Thông tin về bảng màu, nét cọ và họa tiết nghệ thuật vẫn bị rò rỉ (leak) vào vector 
+  danh tính. Khi gặp các phương pháp tạo ảnh hoặc phong cách hoàn toàn mới (Cross-Method 
+  như FLUX.2 trong Bảng 1 của bài báo), hiệu năng TPR của StyleID bị sụt giảm nghiêm 
+  trọng từ 90.2% xuống chỉ còn 74.4%. Tương tự, trên tập tranh vẽ tay thực tế SKSF-A, 
+  độ chính xác Acc@0.4 chỉ còn 73.9%.
+
+1.3. Giả thuyết nghiên cứu (Research Hypothesis)
+Nếu chúng ta TÁCH TƯỜNG MINH (explicitly factorize) không gian biểu diễn của ảnh thành 
+hai không gian con độc lập:
+  (1) Vector z_id (Identity Subspace): Chuyên biệt lưu trữ đặc trưng nhân dạng.
+  (2) Vector z_style (Style Subspace): Chuyên biệt lưu trữ phong cách nghệ thuật.
+Đồng thời áp dụng "Ràng buộc trực giao" (Orthogonality Constraint) và "Huấn luyện 
+đối kháng triệt tiêu Style" (Adversarial Style Confusion), vector danh tính z_id sẽ 
+được thanh lọc triệt để khỏi các tạp âm phong cách, từ đó giúp mô hình duy trì độ 
+chính xác vượt trội khi gặp bất kỳ phong cách vẽ mới lạ nào ngoài đời thực.
+
+================================================================================
+2. ĐÓNG GÓP KHOA HỌC CHÍNH (KEY CONTRIBUTIONS)
+================================================================================
+
+1. Thiết kế kiến trúc Dual-Branch Disentanglement:
+   Xây dựng cơ chế trích xuất hai nhánh song song từ Vision Transformer của CLIP 
+   thông qua LoRA adapters: phân tách thành không gian danh tính z_id (512 chiều) 
+   và không gian phong cách z_style (256 chiều).
+
+2. Cơ chế phân tách tường minh kết hợp Đối kháng (Explicit Disentanglement):
+   Đề xuất hàm mất mát trực giao (Subspace Orthogonality Loss) kết hợp với Gradient 
+   Reversal Layer (GRL) để chủ động triệt tiêu hoàn toàn thông tin phong cách bên 
+   trong vector danh tính z_id.
+
+3. Khai thác trọn vẹn nhãn đa cấp của StyleBench-S:
+   Tận dụng toàn diện cả 3 trường thông tin: Identity ID, Style Category (Pixar, 
+   Anime, Cyberpunk...) và Strength Level có sẵn trong bộ dữ liệu mà bài báo gốc 
+   chưa khai thác hết.
+
+4. Nâng cao độ bền vững trên các miền dữ liệu mới (Cross-Domain & Zero-Shot):
+   Chứng minh thực nghiệm mô hình mới vượt trội hơn SOTA hiện tại trên các kịch bản 
+   khắt khe: Cross-Style, Cross-Method (FLUX.2) và tranh phác thảo họa sĩ vẽ tay (SKSF-A).
+
+================================================================================
+3. THIẾT KẾ PHƯƠNG PHÁP & KIẾN TRÚC MÔ HÌNH
+================================================================================
+
+3.1. Sơ đồ luồng xử lý (Architecture Workflow)
+
+    [Ảnh đầu vào Stylized Face]
+                 │
+                 ▼
+    [CLIP ViT-Large/14 Backbone (Frozen)] + [LoRA Adapters (Trainable)]
+                 │
+                 ▼ Vector đặc trưng f(x) ∈ R^768
+       ┌─────────┴─────────┐
+       ▼                   ▼
+  [Identity Head]      [Style Head]
+   z_id ∈ R^512        z_style ∈ R^256
+       │                   │
+       ├─► ArcFace Loss    ├─► Style Cross-Entropy Loss
+       ├─► SupCon Loss     ├─► Style Contrastive Loss
+       │                   │
+       └─────► [RÀNG BUỘC TRỰC GIAO (L_ortho)] ◄─────┘
+               [TRIỆT TIÊU ĐỐI KHÁNG (L_adv)]
+
+3.2. Cấu trúc các Head đầu ra:
+- Backbone: CLIP-ViT-Large/14 (đóng băng tham số gốc), tích hợp LoRA rank r=8 tại 
+  các lớp self-attention (q_proj, k_proj, v_proj, out_proj).
+- Identity Projector: Lớp MLP ánh xạ 768 -> 512 chiều, chuẩn hóa L2 norm = 1.
+- Style Projector: Lớp MLP ánh xạ 768 -> 256 chiều, chuẩn hóa L2 norm = 1.
+
+================================================================================
+4. HỆ THỐNG HÀM MẤT MÁT TOÀN DIỆN (MATHEMATICAL FORMULATIONS)
+================================================================================
+
+Tổng hàm mất mát huấn luyện:
+    L_total = L_id + α * L_style + β * L_disentangle + γ * L_reg
+
+Trong đó:
+
+4.1. Nhóm mất mát Danh tính (Identity Objective - L_id):
+    L_id = L_ang(z_id, y_id) + λ_1 * L_scon(z_id, y_id)
+    - L_ang: ArcFace margin loss (scale s=32, margin m=0.5) ép các vector cùng ID 
+      hội tụ theo góc trên siêu mặt cầu.
+    - L_scon: Supervised contrastive loss kéo các ảnh cùng người lại gần nhau, đẩy 
+      các người khác ra xa trong mini-batch.
+
+4.2. Nhóm mất mát Phong cách (Style Objective - L_style):
+    L_style = L_ce(z_style, y_style) + λ_2 * L_scon_style(z_style, y_style)
+    - L_ce: Cross-Entropy loss phân loại chính xác 10 phong cách nghệ thuật.
+    - L_scon_style: Contrastive loss kéo các ảnh có cùng phong cách lại gần nhau 
+      bất kể đó là người nào.
+
+4.3. Nhóm mất mát Phân tách tường minh (Disentanglement Objective - L_disentangle):
+    Gồm 2 thành phần cốt lõi:
+    (a) Ràng buộc trực giao (Subspace Orthogonality Loss):
+        L_ortho = (1/B) * Σ [ (W_p * z_id_i) • z_style_i ]^2
+        Ép tích vô hướng giữa vector ID và vector Style của cùng một bức ảnh tiến về 0 
+        (W_p là ma trận chiếu 256x512 để đồng bộ số chiều).
+    (b) Đối kháng triệt tiêu phong cách (Adversarial Style Confusion via GRL):
+        Một bộ phân biệt Style nhỏ nhận đầu vào là z_id. Thông qua tầng Gradient 
+        Reversal Layer (GRL), mạng ép z_id không chứa bất kỳ thông tin nào để bộ 
+        phân biệt có thể đoán được style.
+
+4.4. Mất mát điều hòa bảo toàn tri thức CLIP (Regularization - L_reg):
+    L_reg = 1 - (1/B) * Σ [ z_id_i • z_clip_base_i ]
+    Đảm bảo vector z_id không bị biến dạng hay trôi quá xa khỏi không gian ngữ nghĩa 
+    phong phú ban đầu của CLIP.
+
+================================================================================
+5. KẾ HOẠCH THỰC NGHIỆM & TIÊU CHÍ ĐÁNH GIÁ (EXPERIMENTS)
+================================================================================
+
+5.1. Dữ liệu thực nghiệm
+- Tập huấn luyện: Sử dụng Shard đầu tiên styleid-s-000000.tar (~7.12 GB, chứa hơn 
+  25.000 ảnh từ Hugging Face kwanY/stylebench-s).
+- Tập kiểm thử:
+  + Split Cross-ID: Đánh giá trên người mới hoàn toàn.
+  + Split Cross-Style: Đánh giá trên các phong cách nghệ thuật chưa từng học lúc train.
+  + SKSF-A: Bộ dữ liệu tranh phác thảo nghệ thuật vẽ tay thực tế của họa sĩ.
+
+5.2. Các mô hình đối chứng (Baselines)
+- Mô hình cơ sở: StyleID (SIGGRAPH 2026).
+- Nhận diện khuôn mặt truyền thống: ArcFace, AdaFace.
+- Mô hình thị giác lớn: CLIP, SigLIP2.
+- Mô hình chuyên biệt: StylizedFace (Peng et al., 2025).
+
+5.3. Tiêu chí đánh giá khoa học (Metrics)
+1. Chỉ số nhận diện: TPR@FPR=10^-2, Accuracy@0.4, AUROC.
+2. Chỉ số truy vấn ảnh (Retrieval): Top-1 và Top-4 Accuracy trên tranh vẽ tay.
+3. Chỉ số đo độ phân tách (Disentanglement Metrics - Điểm nhấn của bài báo):
+   - Style Probing Accuracy: Huấn luyện bộ phân loại Linear Classifier trên z_id để 
+     đoán Style. Độ chính xác càng thấp (tiến gần về đoán ngẫu nhiên 10%) chứng minh 
+     z_id càng sạch bóng thông tin phong cách.
+   - Trực quan hóa t-SNE / UMAP: Minh họa trực quan z_id chỉ gom cụm theo từng người 
+     (bất kể style gì), còn z_style gom cụm theo từng trường phái vẽ.
+
+================================================================================
+6. TÍNH KHẢ THI VÀ TỐI ƯU TRÊN GOOGLE COLAB T4 (15 GB VRAM)
+================================================================================
+
+- Cân đối bộ nhớ VRAM:
+  + CLIP-ViT-L/14 Frozen: ~850 MB (FP16).
+  + LoRA Adapters + Projection Heads: ~40 MB.
+  + Bộ nhớ tính toán (Activations với batch_size = 32): ~5.2 GB.
+  + Optimizer States (AdamW): ~160 MB.
+  => Tổng mức sử dụng VRAM: ~6.5 GB / 15 GB (Rất an toàn, hoàn toàn không lo lỗi OOM).
+
+- Chiến lược huấn luyện tối ưu:
+  + Bật Mixed Precision FP16 (torch.cuda.amp.autocast).
+  + Batch size = 32, kết hợp Gradient Accumulation = 4 bước để mô phỏng chính xác 
+    hiệu năng của Effective Batch Size = 128 như bài báo gốc trên card A6000.
+
+================================================================================
+7. LỘ TRÌNH TRIỂN KHAI CHI TIẾT (8 TUẦN)
+================================================================================
+
+- Tuần 1: Chuẩn bị môi trường & Dữ liệu
+  + Tạo Colab Notebook, viết code tải và giải nén shard 000000.tar từ Hugging Face.
+  + Xây dựng DataLoader trích xuất đồng thời (image, identity_label, style_label).
+
+- Tuần 2: Xây dựng Baseline đối chứng (Sanity Check)
+  + Huấn luyện mô hình StyleID gốc trên tập con mini để lấy điểm mốc so sánh chuẩn.
+
+- Tuần 3 - 4: Hiện thực hóa Kiến trúc Disentanglement
+  + Cài đặt Identity Head, Style Head, Orthogonality Loss và Gradient Reversal Layer.
+  + Chạy thử nghiệm 2.000 iterations đầu để theo dõi đường cong suy giảm của các hàm loss.
+
+- Tuần 5: Huấn luyện quy mô đầy đủ & Tinh chỉnh siêu tham số
+  + Huấn luyện toàn diện 20.000 - 30.000 iterations trên Colab T4.
+  + Tinh chỉnh hệ số cân bằng các hàm loss (α, β, γ).
+
+- Tuần 6: Thực nghiệm chuyên sâu & Phân tích thành phần (Ablation Study)
+  + Kiểm thử trên Cross-ID, Cross-Style và SKSF-A.
+  + Thực hiện Ablation: Đánh giá hiệu năng khi bỏ Orthogonal loss hoặc bỏ GRL.
+  + Vẽ biểu đồ phân cụm t-SNE và bảng kết quả Style Probing.
+
+- Tuần 7 - 8: Hoàn thiện Bản thảo Bài báo (Paper Writing)
+  + Soạn thảo các mục: Abstract, Introduction, Related Work, Method, Experiments.
+  + Biên tập hình ảnh, bảng biểu so sánh trực quan và nộp bài.
+
+================================================================================
+8. QUẢN TRỊ RỦI RO & PHƯƠNG ÁN DỰ PHÒNG (RISK MITIGATION)
+================================================================================
+
+- Rủi ro 1: Hàm Orthogonality Loss phạt quá mạnh làm giảm khả năng nhận diện của z_id.
+  -> Phương án: Áp dụng chiến lược Warm-up (cho hệ số β tăng dần từ 0 lên 0.05 sau 
+     khi nhánh danh tính đã bắt đầu học ổn định).
+- Rủi ro 2: Thời gian kết nối Colab bị gián đoạn.
+  -> Phương án: Tự động lưu checkpoint định kỳ sau mỗi 2.000 steps lên Google Drive 
+     để có thể tiếp tục huấn luyện ngay lập tức mà không bị mất tiến trình.
+
+================================================================================
+                           HẾT ĐỀ CƯƠNG CHI TIẾT
+================================================================================

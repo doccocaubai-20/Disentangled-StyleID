@@ -1,0 +1,141 @@
+[TRAIN] 480 ảnh | 240 identities.
+[VAL (UNSEEN)] 120 ảnh | 60 identities.
+
+===== BẮT ĐẦU HUẤN LUYỆN BASELINE (10 EPOCHS - T4 GPU) =====
+Epoch 1/10: 100% 15/15 [00:27<00:00,  1.82s/it, loss=15.3446]
+Epoch 2/10: 100% 15/15 [00:27<00:00,  1.80s/it, loss=14.4286]
+Epoch 3/10: 100% 15/15 [00:27<00:00,  1.82s/it, loss=14.0087]
+Epoch 4/10: 100% 15/15 [00:27<00:00,  1.83s/it, loss=13.6318]
+Epoch 5/10: 100% 15/15 [00:28<00:00,  1.87s/it, loss=13.4274]
+Epoch 6/10: 100% 15/15 [00:28<00:00,  1.88s/it, loss=13.2529]
+Epoch 7/10: 100% 15/15 [00:28<00:00,  1.90s/it, loss=12.4109]
+Epoch 8/10: 100% 15/15 [00:28<00:00,  1.91s/it, loss=11.5816]
+Epoch 9/10: 100% 15/15 [00:29<00:00,  1.94s/it, loss=11.2766]
+Epoch 10/10: 100% 15/15 [00:28<00:00,  1.93s/it, loss=11.0788]
+
+--> Đang đánh giá trên tập kiểm thử (Unseen Identities)...
+
+=======================================================
+ [KẾT QUẢ BASELINE (STYLEID GỐC - 10 EPOCHS)]
+ - Độ tương đồng trung bình CÙNG NGƯỜI (Positive): 0.6438
+ - Độ tương đồng trung bình KHÁC NGƯỜI (Negative): 0.2448
+ - Khoảng cách phân tách (Cosine Margin Gap):      +0.3990
+ - Độ chính xác tối ưu (Best Accuracy):            92.50% (tại ngưỡng 0.456)
+ - Độ chính xác tại ngưỡng 0.4:                    88.33%
+ - Tổng số cặp kiểm tra: 60 dương / 180 âm
+
+
+
+[TRAIN] 480 ảnh | 240 IDs | 1 Styles.
+[VAL (UNSEEN)] 120 ảnh | 60 IDs | 1 Styles.
+
+===== BẮT ĐẦU HUẤN LUYỆN DISENTANGLED-STYLEID (10 EPOCHS - T4 GPU) =====
+Epoch 1/10: 100% 15/15 [00:22<00:00,  1.50s/it, id_loss=15.047, ortho=0.0018]
+Epoch 2/10: 100% 15/15 [00:21<00:00,  1.45s/it, id_loss=13.196, ortho=0.0024]
+Epoch 3/10: 100% 15/15 [00:21<00:00,  1.44s/it, id_loss=11.362, ortho=0.0012]
+Epoch 4/10: 100% 15/15 [00:22<00:00,  1.48s/it, id_loss=10.570, ortho=0.0008]
+Epoch 5/10: 100% 15/15 [00:22<00:00,  1.49s/it, id_loss=9.745, ortho=0.0007]
+Epoch 6/10: 100% 15/15 [00:22<00:00,  1.50s/it, id_loss=8.706, ortho=0.0005]
+Epoch 7/10: 100% 15/15 [00:22<00:00,  1.48s/it, id_loss=7.447, ortho=0.0008]
+Epoch 8/10: 100% 15/15 [00:22<00:00,  1.51s/it, id_loss=6.978, ortho=0.0005]
+Epoch 9/10: 100% 15/15 [00:22<00:00,  1.51s/it, id_loss=5.412, ortho=0.0016]
+Epoch 10/10: 100% 15/15 [00:22<00:00,  1.51s/it, id_loss=4.398, ortho=0.0014]
+
+--> Đang đánh giá trên tập kiểm thử bằng vector z_id thuần khiết...
+
+=======================================================
+ [KẾT QUẢ DISENTANGLED-STYLEID (ĐỀ XUẤT - 10 EPOCHS)]
+ - Độ tương đồng trung bình CÙNG NGƯỜI (Positive): 0.5823
+ - Độ tương đồng trung bình KHÁC NGƯỜI (Negative): 0.1507
+ - Khoảng cách phân tách (Cosine Margin Gap):      +0.4315
+ - Độ chính xác tối ưu (Best Accuracy):            96.67% (tại ngưỡng 0.353)
+ - Độ chính xác tại ngưỡng 0.4:                    95.83%
+ - Tổng số cặp kiểm tra: 60 dương / 180 âm
+=======================================================
+
+
+
+
+
+
+
+
+
+
+
+[TRAIN] 3200 ảnh | 1600 identities.
+[VAL (UNSEEN)] 800 ảnh | 400 identities.
+
+===== BẮT ĐẦU HUẤN LUYỆN BASELINE (5 EPOCHS - T4 GPU) =====
+Epoch 1/5: 100% 100/100 [03:08<00:00,  1.88s/it, loss=16.7890]
+Epoch 2/5: 100% 100/100 [03:16<00:00,  1.96s/it, loss=15.0243]
+Epoch 3/5: 100% 100/100 [03:18<00:00,  1.99s/it, loss=13.7406]
+Epoch 4/5: 100% 100/100 [03:18<00:00,  1.99s/it, loss=12.1159]
+Epoch 5/5: 100% 100/100 [03:18<00:00,  1.98s/it, loss=10.8463]
+
+--> Đang đánh giá trên tập kiểm thử (Unseen Identities)...
+
+=======================================================
+ [KẾT QUẢ BASELINE (STYLEID GỐC - 5 EPOCHS)]
+ - Độ tương đồng trung bình CÙNG NGƯỜI (Positive): 0.7106
+ - Độ tương đồng trung bình KHÁC NGƯỜI (Negative): 0.0519
+ - Khoảng cách phân tách (Cosine Margin Gap):      +0.6587
+ - Độ chính xác tối ưu (Best Accuracy):            97.46% (tại ngưỡng 0.474)
+ - Độ chính xác tại ngưỡng 0.4:                    96.19%
+ - Tổng số cặp kiểm tra: 59 dương / 177 âm
+=======================================================
+
+
+
+
+
+
+
+
+[TRAIN] 3200 ảnh | 1600 IDs | 1 Styles.
+[VAL (UNSEEN)] 800 ảnh | 400 IDs | 1 Styles.
+
+===== BẮT ĐẦU HUẤN LUYỆN DISENTANGLED-STYLEID (5 EPOCHS - T4 GPU) =====
+Epoch 1/5: 100% 100/100 [02:31<00:00,  1.51s/it, id_loss=16.690, ortho=0.0012]
+Epoch 2/5: 100% 100/100 [02:32<00:00,  1.52s/it, id_loss=14.136, ortho=0.0008]
+Epoch 3/5: 100% 100/100 [02:33<00:00,  1.53s/it, id_loss=11.705, ortho=0.0009]
+Epoch 4/5: 100% 100/100 [02:33<00:00,  1.54s/it, id_loss=10.830, ortho=0.0007]
+Epoch 5/5: 100% 100/100 [02:32<00:00,  1.53s/it, id_loss=9.610, ortho=0.0009]
+
+--> Đang đánh giá trên tập kiểm thử bằng vector z_id thuần khiết...
+
+=======================================================
+ [KẾT QUẢ DISENTANGLED-STYLEID (ĐỀ XUẤT - 5 EPOCHS)]
+ - Độ tương đồng trung bình CÙNG NGƯỜI (Positive): 0.6487
+ - Độ tương đồng trung bình KHÁC NGƯỜI (Negative): 0.1083
+ - Khoảng cách phân tách (Cosine Margin Gap):      +0.5404
+ - Độ chính xác tối ưu (Best Accuracy):            97.03% (tại ngưỡng 0.377)
+ - Độ chính xác tại ngưỡng 0.4:                    97.03%
+ - Tổng số cặp kiểm tra: 59 dương / 177 âm
+=======================================================
+
+
+
+
+
+Tôi xin nói về sự nghiên cứu của tôi về bài này bạn đánh giá xem đã đúng chưa nhé: Em xin phép nói về bài báo gốc thì bài báo gốc họ bài toán là bài toán nhận diện khuôn mặt độc lập với phong cách nghệ thuật của ảnh, có nghĩa là bài báo nghiên cứu 1 mô hình AI có khả năng tách biệt các cái style ảnh mà AI gen ra để so sánh với ảnh người thật nhằm tìm ra những đặc trưng đặc biệt nhận diện con người đó.  Đặt vấn đề là các mô hình nhận diện khuôn mặt truyền thống chưa được train kĩ với các sự thay đổi màu sắc,chất liệu so với các sự thay đổi của danh tính con người. Bài báo đóng góp 2 dữ liệu là stylebench-h vs cặp ảnh được người thật thẩm định qua khảo sát tâm lý học 
+
+  để làm benchmark kiểm thử. và stylebench-s Bộ dữ liệu huấn luyện tổng hợp khổng lồ được lọc theo "đường cong nhận thức tâm lý vật lý" chỉ giữ lại các ảnh phong cách mà mắt người nhận diện đúng >= 90%. và 1 mô hình AI nhận diện danh tính người. Ý nghĩa và ứng dụng là đánh giá chất lượng ảnh của mô hình sinh tạo ra có đúng ko và làm hàm loss cho mô hình AI gen nhằm giúp ảnh sinh ra vãn giữ được chuẩn các nét mặt của người thật, áp dụng đủ các phong cách style khác mà khong bị lỗi dị vật, cuối cùng là tìm danh tính người dựa trên tranh vẽ hoặc ngược lại
+
+$env:KIRA_KEYS="kira_d18fe66aedc9acc6167c8c5de9f97813
+,kira_8de3d5bdefb304dd25099765a2a8d66c,kira_4290f3e30506410056772bc83156f0e5
+kira_e0c3dc19a1682d02000ef759d5386d7f
+,"; $env:MAX_WORKERS="4"; python scripts/run_parallel_hsk.py 6
+
+$env:FLASHCARD_KEYS="kira_7aac1ae3dfcdc06e1fc1ff5b6792229a
+,kira_d0f4e0c17c55ffc6fc9ac3af903ebe3c
+,kira_e9b660af33d967215d2151d5f092ad43,kira_ab81c846244195944c19a5967bd01786
+"; node scripts/batch_enrich_flashcards.js
+
+python C:\Users\admin\.gemini\antigravity\brain\6657b5bc-0621-4bae-b3c5-cd207470c46e\scratch\upload_audio_to_r2.py "a96e9d7a7e883214b38972c6bae8e4a8" "50d9c9e0b111eb217ba223b50089245f85ed57d5e7d6d691b07fe03b5a20a558" "https://pub-ea35c7ab0b8241448973730e2224358b.r2.dev"
+
+
+$env:SYNONYM_KEYS="kira_7aac1ae3dfcdc06e1fc1ff5b6792229a
+,kira_d0f4e0c17c55ffc6fc9ac3af903ebe3c,kira_e9b660af33d967215d2151d5f092ad43,kira_ab81c846244195944c19a5967bd01786
+"; python C:\Users\admin\.gemini\antigravity\brain\6657b5bc-0621-4bae-b3c5-cd207470c46e\scratch\generate_synonyms_bank.py
+
