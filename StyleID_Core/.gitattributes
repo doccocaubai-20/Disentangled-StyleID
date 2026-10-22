@@ -1,0 +1,2 @@
+# Preserve packaged source bytes so MANIFEST.json SHA256 remains valid.
+* -text

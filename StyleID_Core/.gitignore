@@ -1,0 +1,17 @@
+# Local runtime files and model checkpoints
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+checkpoints/
+runs/
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.zip
+.env
+.env.*
+# Dataset/image inputs are supplied separately
+data/

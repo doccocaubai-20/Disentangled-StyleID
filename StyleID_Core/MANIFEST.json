@@ -1,0 +1,58 @@
+{
+  "purpose": "Code-only organization; no training, inference, mixing or server execution",
+  "source_sha256": {
+    "a100_script_ref.py": "ba8e8e456bc71a06e0105acffc0ce1a65c85f474986eb6eb606d7c234810cada",
+    "colab_train_disentangled.py": "77736b55576c2f256bf4753ec8f1e1b5e9a240bec62456c0f060c5f22f2540db",
+    "colab_train_multi_shards.py": "b5f4570798fd1320b18eaebfa914dbcf8173a9146344795216cc6b1f6c174655",
+    "colab_train_shard1.py": "43844ade8897296e364007a79c272411e543e2dbb04d5c0764811da15a8f6333",
+    "benchmark_sksf_a.py": "3eb025aa94d7f7eea05b8cf192da7696c865c6c618c3271cb459d14699da94df",
+    "eval_lfw_official_protocol.py": "a7b5191b5d6f049a2b9c6f4195c4b4a13aeef50d22943ac3dddf1c3fee933e87",
+    "web_demo.py": "a4d6d77ec522029d3db50d4a6d0aa03e3c93a90d74f5d1287ee09efb40abe11a",
+    "demo_leace.py": "6ac22904057b4ef0f33c739ab88f44cbc8d7bf54d55dec792eba2571ae49f093"
+  },
+  "changes": {
+    "train_a100_50.py": [
+      "Extracted training section only from a100_script_ref.py",
+      "Fixed bare separator line; no notebook shell commands remain",
+      "Separate work/output paths; original math/LR/batch/epochs retained"
+    ],
+    "train_shard_0_den_6.py": [
+      "Explicit --shard 0..6 instead of default shard7",
+      "Isolated work directory; snapshots use named shardN output",
+      "Original train_shard implementation retained; early partial/shard1 recipes differ"
+    ],
+    "test_sksf_a.py": [
+      "Original scoring/preprocessing retained",
+      "Require1876 pairs; exact Soup, no shard fallback",
+      "Resource/checkpoint paths independent of CWD"
+    ],
+    "test_lfw_full_6000.py": [
+      "Original full6000/10fold script, not test_all.py",
+      "Require6000 pairs and existing images; optional STYLEID_LFW_HOME",
+      "Resource/checkpoint paths independent of CWD; exact Soup required"
+    ],
+    "server.py": [
+      "Soup/LEACE mode selector and both cosine scores; raw default",
+      "Exact Soup hashes bound to included LEACE operator",
+      "Preset resources resolve independently of launch directory"
+    ]
+  },
+  "output_sha256": {
+    "archive/train_a100_multi_shards_original.py": "83e3e2602d155c057121e0c91ad74fe5fc8da0f42134af228f2aaf884f0553c6",
+    "archive/train_shard1_original.py": "dc9c22e1de967afac835ad8294827d675fe2def381c9dfbd44117409fe3b3c0c",
+    "assets/soup_leace_metadata.json": "102f90dde8b2a35beb579161f1c9763b2d247caed432f96ca4fc85fa60697311",
+    "assets/soup_leace_operator.npz": "ee22bc2f2b3e84cbcade7d113b1898b5e76455e54407125b64ffe52e3c7ee6f8",
+    "demo_leace.py": "2ea2df989d160fd445ca18dc579e632fe76539556667684146220a0a82f8923b",
+    "mo_server.bat": "2f4734f960901b53d701145be4d546649548ef019b8ec70eb0c8acb744e71580",
+    "README_VI.md": "80a04aeda7d9e64d9cb92069d28003e2e034790c87b5c56ad8b6d74058d826d1",
+    "requirements.txt": "d4a7affcbd91e97ace906e2bdb7352bd1aa2c7d206ce4613d0340f0debfecf8c",
+    "server.py": "514be3e04ec734be58a6f069f8fb201f26cc695f7ce639426ea2034f27c756e4",
+    "StyleID_Colab_Check_3Models_LFW6000.py": "d66fb7c9e3aeb3e8b2079040b0b79ffc340f9b0ccc74d5d0aaa899281b130fe4",
+    "StyleID_Colab_Check_3Models_LFW6000_v2.py": "63d4c1056994ff8319b83d406a4567a07bdcd19b06513547eb4763c56ea8063c",
+    "tao_soup.py": "9c8ba55ae40752b0c35f74eb4b6ce8bad76eb4818fe3344ee68261393d32a370",
+    "test_lfw_full_6000.py": "0478765dca844e8ad7f26b9a1ecdaabeb6459da524349a884a00c87c9543adc9",
+    "test_sksf_a.py": "dcc0f6ef5f7a2deb9b0b66d531fe32b17eded5482b4e3fc0fb1f2baadfa5c275",
+    "train_a100_50.py": "858fbda098f084ae8e6eeb3770f6ac4747f999e32c0f97ac16c1f836ea4b2564",
+    "train_shard_0_den_6.py": "c332f1980dcf5b09c86e5b93039098b4ac16c623139d6cc616e4178935a23ed8"
+  }
+}
