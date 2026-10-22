@@ -38,27 +38,41 @@
     ],
     "env_config": [
       "Added tracked .env.example; load local .env before resource paths in server and tests; existing environment has priority; added python-dotenv."
+    ],
+    "folder_reorganization": [
+      "Grouped code by purpose; .env and launch bat remain at core root.",
+      "Adjusted core-root discovery and default checkpoint/output paths.",
+      "Initialized packaged LEACE filter at server startup before API use."
     ]
   },
   "output_sha256": {
-    "archive/train_a100_multi_shards_original.py": "83e3e2602d155c057121e0c91ad74fe5fc8da0f42134af228f2aaf884f0553c6",
-    "archive/train_shard1_original.py": "dc9c22e1de967afac835ad8294827d675fe2def381c9dfbd44117409fe3b3c0c",
+    "01_train/archive/train_a100_multi_shards_original.py": "83e3e2602d155c057121e0c91ad74fe5fc8da0f42134af228f2aaf884f0553c6",
+    "01_train/archive/train_shard1_original.py": "dc9c22e1de967afac835ad8294827d675fe2def381c9dfbd44117409fe3b3c0c",
     "assets/soup_leace_metadata.json": "102f90dde8b2a35beb579161f1c9763b2d247caed432f96ca4fc85fa60697311",
     "assets/soup_leace_operator.npz": "ee22bc2f2b3e84cbcade7d113b1898b5e76455e54407125b64ffe52e3c7ee6f8",
-    "demo_leace.py": "2ea2df989d160fd445ca18dc579e632fe76539556667684146220a0a82f8923b",
-    "mo_server.bat": "2f4734f960901b53d701145be4d546649548ef019b8ec70eb0c8acb744e71580",
-    "README_VI.md": "acc3190e618b023d6eb83982bd8d689066670645b1408bc07d2d4005939cc67b",
+    "04_demo/demo_leace.py": "2ea2df989d160fd445ca18dc579e632fe76539556667684146220a0a82f8923b",
+    "mo_server.bat": "d0add1eace4010c741069738e74b167f438115993b804fcdf135c3db7ed30c2c",
+    "00_docs/HUONG_DAN_CHI_TIET.md": "c257870ba58e622f0e974db810d6e5342b7ee0f4cffef695411a6f6ae978f3b9",
     "requirements.txt": "938886d47c16c878e8a39b8ee2ff1cee34811733c205a5d3e1a9f41a6b82272a",
-    "server.py": "c3033bb6920b4a73f2e99790e943f19df2e8148a21fe64c2a3c729a638e3e3ac",
-    "StyleID_Colab_Check_3Models_LFW6000.py": "d66fb7c9e3aeb3e8b2079040b0b79ffc340f9b0ccc74d5d0aaa899281b130fe4",
-    "StyleID_Colab_Check_3Models_LFW6000_v2.py": "63d4c1056994ff8319b83d406a4567a07bdcd19b06513547eb4763c56ea8063c",
-    "tao_soup.py": "9c8ba55ae40752b0c35f74eb4b6ce8bad76eb4818fe3344ee68261393d32a370",
-    "test_lfw_full_6000.py": "f26f0bdcaafbb2f01a5d1792615c585ccac92b21b20ecb9677a917ff0f06e20b",
-    "test_sksf_a.py": "a471bf8b8eb13cd5a00a87481c36444bf0c7a814273bcf211a65c86a3c18956d",
-    "train_a100_50.py": "858fbda098f084ae8e6eeb3770f6ac4747f999e32c0f97ac16c1f836ea4b2564",
-    "train_shard_0_den_6.py": "c332f1980dcf5b09c86e5b93039098b4ac16c623139d6cc616e4178935a23ed8",
-    ".env.example": "03e7070de2fb2bca38f71a37a4873c388859ba8d64a8ef2b8275c5db3e0a8ebb",
+    "04_demo/server.py": "627b9ae495d62b3a0f89b21a3777b19fa8bc902a048bbaeb2b6d4deac7ad4b8b",
+    "03_benchmark/colab/StyleID_Colab_Check_3Models_LFW6000.py": "d66fb7c9e3aeb3e8b2079040b0b79ffc340f9b0ccc74d5d0aaa899281b130fe4",
+    "03_benchmark/colab/StyleID_Colab_Check_3Models_LFW6000_v2.py": "63d4c1056994ff8319b83d406a4567a07bdcd19b06513547eb4763c56ea8063c",
+    "02_soup/tao_soup.py": "5a22e651c79a6d0fb7b662291fcb8dc60f423d06ecdb5136e1a196a7fc09e6f4",
+    "03_benchmark/test_lfw_full_6000.py": "e9c38d1728439cbd337a1e9b75a42207072a16db5cc3034a9ed62f8c75ce8966",
+    "03_benchmark/test_sksf_a.py": "0bf914e2e253642690cc340ed5c1b1e3cbf79948d788b0ee4d443fa0bccb9403",
+    "01_train/train_a100_50.py": "abfbebbccdd59878221b7eed352fe5f2342237f696d364a5a8f480f0fa16b76e",
+    "01_train/train_shard_0_den_6.py": "af8e131759fc7805a1b47b916b8e0c00ac7cae6bc5f2b3456a98dae3d1384908",
+    ".env.example": "fe717e456b22b9107e05141abaf726ac09aeceb5d7c9dec2f258bcc0228c1657",
     ".gitignore": "b6465cec2be9a1ddb58d916ab65b00094841e39236e31abe3eb5903f87cbf252",
-    ".gitattributes": "6f72ba1f2592112eca9e5fc37e6af9df553f86a875b496cebefef485ef5dc131"
+    ".gitattributes": "6f72ba1f2592112eca9e5fc37e6af9df553f86a875b496cebefef485ef5dc131",
+    "README_VI.md": "9568f68230eef1b617213b562ac9cb03c5bd9762a64fd7cdbd4bad64d7598b97"
+  },
+  "layout": {
+    "docs": "00_docs",
+    "training": "01_train",
+    "weight_soup": "02_soup",
+    "evaluation": "03_benchmark",
+    "web": "04_demo",
+    "leace_assets": "assets"
   }
 }

@@ -39,7 +39,7 @@ def mix_states(first, second, weight):
 
 
 def main():
-    here = Path(__file__).resolve().parent
+    here = Path(__file__).resolve().parents[1]
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--parent-dir', type=Path, default=here.parent,
                         help='Directory containing the named shard6 and a100_final pairs')
