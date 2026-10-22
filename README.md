@@ -1,112 +1,39 @@
-# StyleID : A Perception-Aware Dataset and Metric for Stylization-Agnostic Facial Identity Recognition
+# Disentangled-StyleID
 
+Dự án phát triển từ StyleID: hai nhánh danh tính và phong cách, model soup và bộ lọc LEACE sau vector danh tính.
 
-**SIGGRAPH 2026 / ACM TOG Journal Track**
+## Bắt đầu từ StyleID_Core
 
-[![arXiv](https://img.shields.io/badge/arXiv-2604.21689-b31b1b.svg)](https://arxiv.org/abs/2604.21689)
-[![Project Page](https://img.shields.io/badge/Project-Page-blue)](https://kwanyun.github.io/StyleID_page/)
-[![HuggingFace](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)](https://huggingface.co/kwanY/styleid)
+Mã hiện dùng và hướng dẫn: **[StyleID_Core](StyleID_Core/README_VI.md)**.
 
+| Thư mục | Nội dung |
+|---|---|
+| `StyleID_Core/00_docs/` | Hướng dẫn và tài liệu tham chiếu |
+| `StyleID_Core/01_train/` | Train S6/A100 và bản lịch sử |
+| `StyleID_Core/02_soup/` | Kết hợp trọng số S6 + A100 |
+| `StyleID_Core/03_benchmark/` | Test SKSF-A, LFW 6.000 cặp và Colab |
+| `StyleID_Core/04_demo/` | Web so sánh StyleID, Soup và Soup + LEACE |
+| `StyleID_Core/assets/` | Bộ lọc LEACE và metadata |
 
-StyleID is a CLIP-based image encoder designed to produce **identity embeddings that remain robust under stylization**.  
-It can be used for **identity similarity measurement, retrieval, evaluation, and identity-aware conditioning** in generative pipelines.
-
-
-<img src="https://cdn-uploads.huggingface.co/production/uploads/639d445524af4747d8d2af52/1pTEZ88YvwnbDPlV_UqpM.jpeg" width="800">
-
-
-## Quick Start
-
-```bash
-pip install torch transformers==4.52.0 pillow
-```
-
-```python
-import torch
-from transformers import CLIPModel, CLIPProcessor
-from PIL import Image
-
-device = "cuda" if torch.cuda.is_available() else "cpu"
-
-model = CLIPModel.from_pretrained("kwanY/styleid").to(device)
-processor = CLIPProcessor.from_pretrained("kwanY/styleid")
-
-img_path = "data/ex.png"
-img = Image.open(img_path).convert("RGB")
-
-inputs = processor(images=img, return_tensors="pt").to(device)
-
-with torch.no_grad():
-    emb = model.get_image_features(**inputs)
-    emb = emb / emb.norm(dim=-1, keepdim=True)
-```
-
-#### Notes
-
-- Not suitable for images with **multiple faces**
-- Rough center crop near the face is recommended for better performance
-
----
-
-## Training
-
-Install the additional dependencies:
-
-```bash
-pip install wandb tqdm
-```
-
-
-Prepare [StyleID-S](https://huggingface.co/datasets/kwanY/stylebench-s)
- with the following structure:
+Trên Windows:
 
 ```text
-styleid-s/
-├── p3/
-│   └── {identity}.png
-└── {method}/
-    └── {style}/
-        └── {identity}_{index}.png
+cd StyleID_Core
+python -m pip install -r requirements.txt
+copy .env.example .env
 ```
 
-Then create the checkpoint directory and run the training script. The dataset path and training hyperparameters can be changed in the final line of the script.
+Điền đường dẫn checkpoint trong `.env`, rồi bấm `mo_server.bat`. Trọng số lớn và dataset được cung cấp riêng. Ngưỡng trên web chỉ phục vụ demo, chưa hiệu chuẩn riêng cho từng model/chế độ.
 
-```bash
-mkdir -p ckpt
-python full_train_clip-checkpoint.py
-```
+## Mã tham chiếu giữ lại
 
----
+- `full_train_clip-checkpoint.py`: mã train StyleID ban đầu, khác recipe hai nhánh của nhóm.
+- `generation/`: mã tham chiếu tạo dữ liệu StyleBench; không phải pipeline tạo ảnh đã kiểm chứng với model của nhóm.
+- `data/`: ảnh mẫu có sẵn trong repo.
+- [README StyleID ban đầu](StyleID_Core/00_docs/STYLEID_ORIGINAL_README.md): mô tả, trích dẫn và thông báo sử dụng từ bản trước.
 
-## Intended Uses
+Các bản train/test trùng chức năng, báo cáo cũ, handover nội bộ và file thử đã được bỏ khỏi phiên bản hiện tại trên GitHub. Có thể truy vết trong lịch sử Git. Các file nghiên cứu còn trong workspace cá nhân không tự động được xuất bản lên repo.
 
-StyleID embeddings can be used for:
+## Phạm vi kết luận
 
-- Identity similarity comparison
-- Image retrieval
-- Stylized identity evaluation
-- Identity-aware conditioning for generative models
-- Research on face recognition under domain shift and stylization
-
----
-
-## License and Usage Notice
-
-- StyleID is released for non-commercial research use.
-- Do not use FFHQ-derived data for biometric human recognition
-
-
-## Citation
-
-If you find this work useful, please cite the paper:
-
-```
-@article{yun2026styleid,
-  title={StyleID: A Perception-Aware Dataset and Metric for Stylization-Agnostic Facial Identity Recognition},
-  author={Yun, Kwan and Lee, Changmin and Jeong, Ayeong and Kim, Youngseo and Lee, Seungmi and Noh, Junyong},
-  journal={arXiv preprint arXiv:2604.21689},
-  year={2026}
-}
-```
-
----
+Hai nhánh không bảo đảm tách hoàn toàn danh tính và phong cách. LEACE là phương pháp có sẵn được tích hợp và cần đánh giá cùng mức đánh đổi về nhận dạng. Các checkpoint có lịch train khác nhau không phải đối chứng cô lập tác động từng loss.

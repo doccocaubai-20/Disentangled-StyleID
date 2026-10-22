@@ -65,7 +65,8 @@
     ".env.example": "fe717e456b22b9107e05141abaf726ac09aeceb5d7c9dec2f258bcc0228c1657",
     ".gitignore": "b6465cec2be9a1ddb58d916ab65b00094841e39236e31abe3eb5903f87cbf252",
     ".gitattributes": "6f72ba1f2592112eca9e5fc37e6af9df553f86a875b496cebefef485ef5dc131",
-    "README_VI.md": "9568f68230eef1b617213b562ac9cb03c5bd9762a64fd7cdbd4bad64d7598b97"
+    "README_VI.md": "9568f68230eef1b617213b562ac9cb03c5bd9762a64fd7cdbd4bad64d7598b97",
+    "00_docs/STYLEID_ORIGINAL_README.md": "4ac6aecea542c8d4d955b6812fa67f3663b2cb33fe39aa5e68359087d2c172d2"
   },
   "layout": {
     "docs": "00_docs",
