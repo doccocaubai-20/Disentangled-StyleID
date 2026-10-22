@@ -13,5 +13,6 @@ runs/
 *.zip
 .env
 .env.*
+!.env.example
 # Dataset/image inputs are supplied separately
 data/

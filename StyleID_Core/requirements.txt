@@ -9,3 +9,4 @@ tqdm
 fastapi
 uvicorn
 gdown
+python-dotenv

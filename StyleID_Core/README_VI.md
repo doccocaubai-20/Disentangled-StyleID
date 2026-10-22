@@ -1,5 +1,11 @@
 # Bộ file gọn: train → Soup → kiểm thử → server
 
+## Cấu hình bằng `.env`
+
+Cài thư viện với `python -m pip install -r requirements.txt`, rồi sao chép `.env.example` thành `.env` trong thư mục `StyleID_Core`. Bỏ dấu `#` trước biến cần dùng và điền đường dẫn tuyệt đối của máy bạn. Để nguyên các dòng chú thích nếu muốn chương trình tự tìm đường dẫn như trước.
+
+Server và hai file test tự đọc `.env` trước khi xác định đường dẫn; biến môi trường đã đặt trong hệ thống được ưu tiên. `STYLEID_CHECKPOINT_DIR` trỏ đến thư mục chứa hai checkpoint Soup; `STYLEID_RESOURCES` là thư mục tài nguyên, `STYLEID_LFW_HOME` dùng cho test LFW, `HF_HOME` là bộ nhớ đệm tải mô hình. `.env` được Git bỏ qua; `.env.example` được đưa lên GitHub. File `.env` không tự tải trọng số hoặc dataset.
+
 ## Demo Soup + LEACE (đã bổ sung)
 
 Chạy `mo_server.bat`, chọn hai ảnh và bấm tính. Mục **Chế độ Soup** cho phép chuyển **Soup gốc / Soup + LEACE**, luôn hiển thị cả hai điểm cosine. Chuyển chế độ sau khi đã tính không chạy model lại. Mặc định giữ Soup gốc.
