@@ -43,6 +43,10 @@
       "Grouped code by purpose; .env and launch bat remain at core root.",
       "Adjusted core-root discovery and default checkpoint/output paths.",
       "Initialized packaged LEACE filter at server startup before API use."
+    ],
+    "colab_training_publication": [
+      "Published byte-identical completed no-orthogonality recipe and CPU LEACE fitting script.",
+      "Added Drive checkpoint locations and Colab instructions; no weights or later pilot code included."
     ]
   },
   "output_sha256": {
@@ -65,8 +69,11 @@
     ".env.example": "fe717e456b22b9107e05141abaf726ac09aeceb5d7c9dec2f258bcc0228c1657",
     ".gitignore": "b6465cec2be9a1ddb58d916ab65b00094841e39236e31abe3eb5903f87cbf252",
     ".gitattributes": "6f72ba1f2592112eca9e5fc37e6af9df553f86a875b496cebefef485ef5dc131",
-    "README_VI.md": "9568f68230eef1b617213b562ac9cb03c5bd9762a64fd7cdbd4bad64d7598b97",
-    "00_docs/STYLEID_ORIGINAL_README.md": "4ac6aecea542c8d4d955b6812fa67f3663b2cb33fe39aa5e68359087d2c172d2"
+    "README_VI.md": "801b0aed3bbed4d3a5b3a7f455812cb85a4bdbb2725728489a6ea31f04119b43",
+    "00_docs/STYLEID_ORIGINAL_README.md": "4ac6aecea542c8d4d955b6812fa67f3663b2cb33fe39aa5e68359087d2c172d2",
+    "01_train/colab/Dong2_Train_ID_Style_Khong_Ortho.py": "635f3f7ecfea2a21d2b175ac3ac8ea8b90c6c35ae7a35e111e801de6d1da5d9c",
+    "01_train/colab/Dong4_LEACE_Tu_Checkpoint_Dong3.py": "cd533431269fb93a32ba5a457ed5bd46cfe0a6baf33536f8d8e73946902d9d86",
+    "00_docs/TRAIN_VA_TRONG_SO_DRIVE.md": "e00fbfd4a6904c620c530e9a93f8d91a8ed925d8319ba9ec629489f58508d5ab"
   },
   "layout": {
     "docs": "00_docs",

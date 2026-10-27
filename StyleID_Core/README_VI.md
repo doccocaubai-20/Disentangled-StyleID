@@ -8,6 +8,7 @@ StyleID_Core/
 ├── 01_train/                  Huấn luyện hai nhánh lịch sử
 │   ├── train_a100_50.py
 │   ├── train_shard_0_den_6.py
+│   ├── colab/                 Train không trực giao và học bộ lọc LEACE
 │   └── archive/               Các phiên bản train cũ để tham khảo
 ├── 02_soup/
 │   └── tao_soup.py            Kết hợp trọng số S6 + A100
@@ -56,4 +57,6 @@ python 03_benchmark/test_lfw_full_6000.py
 
 Các file trong `03_benchmark/colab/` là file độc lập để upload lên notebook Colab; không phải lệnh mở demo. Đọc [hướng dẫn chi tiết](00_docs/HUONG_DAN_CHI_TIET.md) trước khi train hoặc tạo Soup mới.
 
-Các recipe train ở đây là bản lịch sử S6/A100, không phải file đối chứng full10shard vừa tạo trong `Ablation_Thay_4Dong` của workspace. Trọng số lớn, dataset, `.env` và cache Python không được commit lên GitHub.
+Các recipe S6/A100 ở đây là bản lịch sử. Thư mục `01_train/colab/` bổ sung hai file độc lập: `Dong2_Train_ID_Style_Khong_Ortho.py` train mới năm shard [1,2,4,5,6], giữ loss ID và style, bỏ loss trực giao; `Dong4_LEACE_Tu_Checkpoint_Dong3.py` học bộ lọc LEACE bằng CPU từ cache benchmark, không train lại backbone. Đây không phải hai lượt train full10shard.
+
+Đọc [hướng dẫn Colab và vị trí trọng số trên Drive](00_docs/TRAIN_VA_TRONG_SO_DRIVE.md) để chạy hoặc tìm file đã lưu. Trọng số lớn, dataset, `.env` và cache Python không được commit lên GitHub.
