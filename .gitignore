@@ -9,6 +9,8 @@ ckpt/
 # Datasets
 SKSF-A.zip
 SKSF-A_data/
+data/WebCaricature/
+reports/webcaricature_setup_20261021/official_sources/
 *.zip
 
 # Paper PDF (20MB, tải từ arXiv)
@@ -28,3 +30,9 @@ wandb/
 
 # Ảnh cá nhân
 data/1789*.jpg
+
+# Publish only the final Core package from this research workspace
+/*
+!/.gitignore
+!/README.md
+!/StyleID_Core/

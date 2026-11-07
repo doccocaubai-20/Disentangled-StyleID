@@ -16,3 +16,11 @@ runs/
 !.env.example
 # Dataset/image inputs are supplied separately
 data/
+
+# Superseded files retained locally and available in Git history
+/01_train/archive/
+/01_train/colab/Dong4_LEACE_Tu_Checkpoint_Dong3.py
+/03_benchmark/colab/StyleID_Colab_Check_3Models_LFW6000*.py
+/03_benchmark/test_sksf_a.py
+/03_benchmark/test_lfw_full_6000.py
+/00_docs/HUONG_DAN_CHI_TIET.md

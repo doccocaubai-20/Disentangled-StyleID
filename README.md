@@ -1,39 +1,32 @@
-# Disentangled-StyleID
+# Disentangled StyleID
 
-Dự án phát triển từ StyleID: hai nhánh danh tính và phong cách, model soup và bộ lọc LEACE sau vector danh tính.
+Mã nguồn cuối cùng để kiểm chứng StyleID, ID + Style không trực giao, Disentangle ID512 và Dual-Branch 1280 chiều trên SKSF-A và LFW.
 
-## Bắt đầu từ StyleID_Core
+## Chạy ba bảng trên Colab
 
-Mã hiện dùng và hướng dẫn: **[StyleID_Core](StyleID_Core/README_VI.md)**.
+[Mở notebook kiểm chứng](https://colab.research.google.com/github/doccocaubai-20/Disentangled-StyleID/blob/main/StyleID_Core/03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb), chọn GPU và bấm **Run all**. Notebook tự cài thư viện, tải ảnh và checkpoint, rồi tính ba bảng từ ảnh gốc. Các file Drive cần có quyền tải và còn hạn mức.
+
+- [Notebook kiểm chứng](StyleID_Core/03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb)
+- [Mã Python tương ứng](StyleID_Core/03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.py)
+- [Kết quả Colab cuối cùng](StyleID_Core/00_docs/KET_QUA_COLAB.md)
+- [Bảng Word có thể chỉnh sửa](StyleID_Core/00_docs/KET_QUA_KIEM_CHUNG_4_MODELS_COLAB.docx)
+
+## Mã chính
 
 | Thư mục | Nội dung |
 |---|---|
-| `StyleID_Core/00_docs/` | Hướng dẫn và tài liệu tham chiếu |
-| `StyleID_Core/01_train/` | Train S6/A100 và bản lịch sử |
-| `StyleID_Core/02_soup/` | Kết hợp trọng số S6 + A100 |
-| `StyleID_Core/03_benchmark/` | Test SKSF-A, LFW 6.000 cặp và Colab |
-| `StyleID_Core/04_demo/` | Web so sánh StyleID, Soup và Soup + LEACE |
-| `StyleID_Core/assets/` | Bộ lọc LEACE và metadata |
+| [01_train](StyleID_Core/01_train/) | Recipe train có trực giao và đối chứng không trực giao |
+| [02_soup](StyleID_Core/02_soup/) | Tạo trọng số Soup từ S6 và A100 |
+| [03_benchmark/colab](StyleID_Core/03_benchmark/colab/) | Notebook và Python kiểm chứng cuối cùng |
+| [04_demo](StyleID_Core/04_demo/) | Demo web Soup và Soup + LEACE |
+| [00_docs](StyleID_Core/00_docs/) | Kết quả, vị trí trọng số và thông tin StyleID gốc |
 
-Trên Windows:
+[Hướng dẫn sử dụng](StyleID_Core/README_VI.md) · [Trọng số trên Drive](StyleID_Core/00_docs/TRAIN_VA_TRONG_SO_DRIVE.md)
 
-```text
-cd StyleID_Core
-python -m pip install -r requirements.txt
-copy .env.example .env
-```
+## Cách đọc kết quả
 
-Điền đường dẫn checkpoint trong `.env`, rồi bấm `mo_server.bat`. Trọng số lớn và dataset được cung cấp riêng. Ngưỡng trên web chỉ phục vụ demo, chưa hiệu chuẩn riêng cho từng model/chế độ.
+Dual-Branch ghép vector StyleID 768 chiều với vector ID512 của Disentangle, với trọng số cosine 50/50. Biến thể Hard-Positive được ghi thành dòng riêng trong bảng LFW. Demo web hiện dùng Soup/LEACE và có hướng dẫn riêng trong Core.
 
-## Mã tham chiếu giữ lại
+Baseline là StyleID chạy lại trong cùng notebook. Các checkpoint có lịch train khác nhau, nên chênh lệch giữa các dòng chưa cô lập riêng tác động của loss trực giao. Giao thức cặp SKSF-A của nhóm đã được khóa. Tính năng truy vấn danh tính dùng 134 ảnh chụp làm gallery và 938 ảnh phác thảo làm truy vấn.
 
-- `full_train_clip-checkpoint.py`: mã train StyleID ban đầu, khác recipe hai nhánh của nhóm.
-- `generation/`: mã tham chiếu tạo dữ liệu StyleBench; không phải pipeline tạo ảnh đã kiểm chứng với model của nhóm.
-- `data/`: ảnh mẫu có sẵn trong repo.
-- [README StyleID ban đầu](StyleID_Core/00_docs/STYLEID_ORIGINAL_README.md): mô tả, trích dẫn và thông báo sử dụng từ bản trước.
-
-Các bản train/test trùng chức năng, báo cáo cũ, handover nội bộ và file thử đã được bỏ khỏi phiên bản hiện tại trên GitHub. Có thể truy vết trong lịch sử Git. Các file nghiên cứu còn trong workspace cá nhân không tự động được xuất bản lên repo.
-
-## Phạm vi kết luận
-
-Hai nhánh không bảo đảm tách hoàn toàn danh tính và phong cách. LEACE là phương pháp có sẵn được tích hợp và cần đánh giá cùng mức đánh đổi về nhận dạng. Các checkpoint có lịch train khác nhau không phải đối chứng cô lập tác động từng loss.
+Thông tin trích dẫn và điều kiện sử dụng StyleID được lưu tại [tài liệu gốc](StyleID_Core/00_docs/STYLEID_ORIGINAL_README.md).

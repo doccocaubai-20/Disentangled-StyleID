@@ -1,62 +1,67 @@
 # StyleID Core
 
-Mã nguồn được chia theo chức năng. Bắt đầu từ thư mục gốc này; file `.env` và `mo_server.bat` đặt tại đây.
+Bộ mã gồm huấn luyện, tạo Soup, kiểm chứng cuối cùng và demo web. Trọng số và dataset được cung cấp qua Drive hoặc nguồn tải trong notebook.
+
+## Kiểm chứng kết quả cuối cùng
+
+Mở [Kiem_Chung_Full_4Models_Colab.ipynb](03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb) trên Colab, chọn GPU rồi bấm **Run all**.
+
+Notebook tính lại từ ảnh và checkpoint cho bốn cấu hình StyleID, ID + Style không trực giao, Disentangle ID512 và Dual-Branch 1280D. Bảng LFW có thêm biến thể Dual-Branch + Hard-Positive. Hai nhánh được xử lý lần lượt để hạn chế dùng VRAM.
+
+SKSF-A gồm 1.072 ảnh và 1.876 cặp. LFW dùng 7.701 ảnh xuất hiện trong 6.000 cặp View 2, chia 10 fold. Notebook kiểm tra SHA256 của checkpoint và ảnh SKSF-A, kiểm tra archive LFW và dừng khi thiếu ảnh. Drive, Hugging Face và Figshare cần truy cập được.
+
+Có thể upload [file Python tương ứng](03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.py) vào Colab và chạy bằng `runpy.run_path`. File này cài thư viện ở đầu và cần GPU. Trên máy Windows, ưu tiên dùng notebook Colab.
+
+Kết quả đã nhận được lưu trong [bảng Markdown](00_docs/KET_QUA_COLAB.md) và [bản Word](00_docs/KET_QUA_KIEM_CHUNG_4_MODELS_COLAB.docx). Biến thể Hard-Positive dùng adapter đã nhúng trong notebook.
+
+## Các file cần dùng
+
+| File | Công dụng |
+|---|---|
+| `01_train/train_a100_50.py` | Recipe có trực giao, gộp shard [1,2,4,5,6] |
+| `01_train/train_shard_0_den_6.py` | Trainer nối tiếp, mỗi lần chọn một shard 0 đến 6 |
+| `01_train/colab/Dong2_Train_ID_Style_Khong_Ortho.ipynb` | Notebook train đối chứng, giữ loss ID và style, tắt loss trực giao |
+| `01_train/colab/Dong2_Train_ID_Style_Khong_Ortho.py` | Mã Python của notebook đối chứng |
+| `02_soup/tao_soup.py` | Trộn hai cặp checkpoint S6 và A100 trên CPU |
+| `03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb` | Chạy ba bảng kiểm chứng từ ảnh và checkpoint |
+| `04_demo/server.py` và `04_demo/demo_leace.py` | Web demo và lớp áp dụng bộ lọc LEACE |
+| `assets/soup_leace_operator.npz` và metadata | Bộ lọc bắt buộc của demo LEACE |
+| `.env.example` | Cấu hình đường dẫn cho demo |
+| `MANIFEST.json` | Danh sách và SHA256 các file phát hành |
+
+## Huấn luyện và tạo Soup
+
+Đọc [recipe và vị trí checkpoint](00_docs/TRAIN_VA_TRONG_SO_DRIVE.md) trước khi chạy. Các recipe có trực giao là mã huấn luyện lịch sử. Shard 0 dùng một phần dữ liệu và các lượt đầu có thiết lập riêng, nên chạy mới trainer tuần tự chưa bảo đảm tái tạo đúng checkpoint S6 lịch sử.
+
+Chạy từ thư mục `StyleID_Core` trên môi trường phù hợp.
 
 ```text
-StyleID_Core/
-├── 00_docs/                   Hướng dẫn chi tiết
-├── 01_train/                  Huấn luyện hai nhánh lịch sử
-│   ├── train_a100_50.py
-│   ├── train_shard_0_den_6.py
-│   ├── colab/                 Train không trực giao và học bộ lọc LEACE
-│   └── archive/               Các phiên bản train cũ để tham khảo
-├── 02_soup/
-│   └── tao_soup.py            Kết hợp trọng số S6 + A100
-├── 03_benchmark/
-│   ├── test_sksf_a.py         Kiểm thử SKSF-A
-│   ├── test_lfw_full_6000.py  Kiểm thử LFW
-│   └── colab/                Các file upload chạy trên Colab
-├── 04_demo/
-│   ├── server.py             Web so sánh StyleID, Soup và Soup + LEACE
-│   └── demo_leace.py         Nạp và áp dụng bộ lọc
-├── assets/                   Bộ lọc LEACE và metadata
-├── checkpoints/soup/         Tự thêm hai file trọng số; không đưa lên Git
-├── .env.example              Cấu hình mẫu
-├── mo_server.bat             Mở web trên Windows
-├── requirements.txt
-└── MANIFEST.json             Nguồn và hash các file
+python 01_train/train_a100_50.py --help
+python 01_train/train_shard_0_den_6.py --help
+python 02_soup/tao_soup.py --help
 ```
 
-## Mở demo
+Trainer tuần tự yêu cầu cả backbone và head của shard trước trong `--work-dir` khi shard lớn hơn 0. Tạo Soup cần đúng hai checkpoint cha S6 và A100. Đầu ra mới được đặt trong thư mục riêng, và chương trình kiểm tra trước khi ghi đè.
 
-1. Cài Python và thư viện: `python -m pip install -r requirements.txt`.
-2. Đặt hai trọng số Soup đúng tên vào `checkpoints/soup/`, hoặc điền `STYLEID_CHECKPOINT_DIR` trong `.env`.
-3. Sao chép `.env.example` thành `.env` nếu cần tùy chỉnh đường dẫn. Dùng đường dẫn tuyệt đối. Biến môi trường hệ thống được ưu tiên hơn `.env`.
-4. Bấm đúp `mo_server.bat`, hoặc chạy `python 04_demo/server.py`.
+Mã lịch sử chi tiết hơn có thể truy vết trong lịch sử Git. Notebook đối chứng chạy hai epoch trên năm shard gộp chung [1,2,4,5,6], khởi tạo mới. Các dòng benchmark chưa phải đối chứng có lịch train hoàn toàn giống nhau.
 
-Tên hai trọng số bắt buộc:
+## Demo web trên Windows
+
+```text
+cd StyleID_Core
+python -m pip install -r requirements.txt
+copy .env.example .env
+```
+
+Đặt hai checkpoint Soup vào `checkpoints/soup/` hoặc điền `STYLEID_CHECKPOINT_DIR` trong `.env`.
 
 ```text
 disentangled_lora_clip_SOUP_S6_A100.pt
 disentangled_head_SOUP_S6_A100.pt
 ```
 
-Server tự tìm bộ lọc trong `assets/`, kiểm tra hash bộ lọc và đúng checkpoint Soup. Lần đầu có thể tải CLIP và StyleID chính thức. Ảnh preset cần tài nguyên riêng; bạn có thể upload hai ảnh của mình trên web. Ngưỡng mặc định 0,4 chỉ để demo, chưa hiệu chuẩn riêng cho từng chế độ.
+Bấm `mo_server.bat` hoặc chạy `python 04_demo/server.py`. Bộ lọc LEACE và metadata trong `assets/` phải đi cùng mã demo. Server kiểm tra hash checkpoint và bộ lọc. Lần đầu chạy có thể tải CLIP và StyleID.
 
-## Các lệnh khác
+Web so sánh hai ảnh bằng StyleID, Soup hoặc Soup + LEACE. Ba bảng cuối dùng Dual-Branch và biến thể Hard-Positive trong notebook kiểm chứng. Ngưỡng web mặc định 0,4 phục vụ thử nghiệm và chưa được hiệu chuẩn theo từng model.
 
-Chạy từ thư mục `StyleID_Core`:
-
-```text
-python 01_train/train_a100_50.py --help
-python 01_train/train_shard_0_den_6.py --help
-python 02_soup/tao_soup.py --help
-python 03_benchmark/test_sksf_a.py
-python 03_benchmark/test_lfw_full_6000.py
-```
-
-Các file trong `03_benchmark/colab/` là file độc lập để upload lên notebook Colab; không phải lệnh mở demo. Đọc [hướng dẫn chi tiết](00_docs/HUONG_DAN_CHI_TIET.md) trước khi train hoặc tạo Soup mới.
-
-Các recipe S6/A100 ở đây là bản lịch sử. Thư mục `01_train/colab/` bổ sung hai file độc lập: `Dong2_Train_ID_Style_Khong_Ortho.py` train mới năm shard [1,2,4,5,6], giữ loss ID và style, bỏ loss trực giao; `Dong4_LEACE_Tu_Checkpoint_Dong3.py` học bộ lọc LEACE bằng CPU từ cache benchmark, không train lại backbone. Đây không phải hai lượt train full10shard.
-
-Đọc [hướng dẫn Colab và vị trí trọng số trên Drive](00_docs/TRAIN_VA_TRONG_SO_DRIVE.md) để chạy hoặc tìm file đã lưu. Trọng số lớn, dataset, `.env` và cache Python không được commit lên GitHub.
+Có thể upload ảnh của mình. Preset ảnh cần tài nguyên riêng qua `STYLEID_RESOURCES`. `HF_HOME` đặt vị trí cache tải model. Biến môi trường hệ thống được ưu tiên hơn `.env`.

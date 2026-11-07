@@ -1,6 +1,6 @@
 """Sequential shard trainer, selected shard 0..6; default recipe preserved.
 This is the current shared trainer, not an exact reconstruction of all early runs.
-Use historical shard1 source in archive/ when tracing that distinct recipe.
+Earlier shard1 and A100 variants remain available in Git history.
 """
 import argparse as _argparse
 import os as _os
