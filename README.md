@@ -18,14 +18,14 @@ Mã nguồn cuối cùng để kiểm chứng StyleID, ID + Style không trực 
 | [01_train](StyleID_Core/01_train/) | Recipe train có trực giao và đối chứng không trực giao |
 | [02_soup](StyleID_Core/02_soup/) | Tạo trọng số Soup từ S6 và A100 |
 | [03_benchmark/colab](StyleID_Core/03_benchmark/colab/) | Notebook và Python kiểm chứng cuối cùng |
-| [04_demo](StyleID_Core/04_demo/) | Demo web Soup và Soup + LEACE |
+| [04_demo](StyleID_Core/04_demo/) | Demo cấu hình cuối LFW Dual-Branch + Hard-Positive |
 | [00_docs](StyleID_Core/00_docs/) | Kết quả, vị trí trọng số và thông tin StyleID gốc |
 
 [Hướng dẫn sử dụng](StyleID_Core/README_VI.md) · [Trọng số trên Drive](StyleID_Core/00_docs/TRAIN_VA_TRONG_SO_DRIVE.md)
 
 ## Cách đọc kết quả
 
-Dual-Branch ghép vector StyleID 768 chiều với vector ID512 của Disentangle, với trọng số cosine 50/50. Biến thể Hard-Positive được ghi thành dòng riêng trong bảng LFW. Demo web hiện dùng Soup/LEACE và có hướng dẫn riêng trong Core.
+Dual-Branch ghép vector StyleID 768 chiều với vector ID512 của Disentangle, với trọng số cosine 50/50. Biến thể Hard-Positive được ghi thành dòng riêng trong bảng LFW. Demo web mặc định dùng Dual-Branch + Hard-Positive với ngưỡng 0,30, cùng cấu hình dòng cuối LFW.
 
 Baseline là StyleID chạy lại trong cùng notebook. Các checkpoint có lịch train khác nhau, nên chênh lệch giữa các dòng chưa cô lập riêng tác động của loss trực giao. Giao thức cặp SKSF-A của nhóm đã được khóa. Tính năng truy vấn danh tính dùng 134 ảnh chụp làm gallery và 938 ảnh phác thảo làm truy vấn.
 

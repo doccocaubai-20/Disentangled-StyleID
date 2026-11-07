@@ -1,6 +1,6 @@
 {
   "release": "2026-11-07",
-  "purpose": "Final Colab four-model benchmark, training recipes, Soup creation and existing Soup/LEACE web demo",
+  "purpose": "Final Colab four-model benchmark, training recipes, Soup creation and Dual-Branch + Hard-Positive web demo",
   "entrypoints": {
     "evaluation_notebook": "03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb",
     "evaluation_python": "03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.py",
@@ -26,7 +26,7 @@
     "00_docs/KET_QUA_COLAB.md": "abcdd4786779d673b479be730944463629aa9c3b6ecb8dd76345e6291894b6d5",
     "00_docs/KET_QUA_KIEM_CHUNG_4_MODELS_COLAB.docx": "c1a33533d2f655348d07abd87985427990dc825d1bfa03cd8780b9141710f533",
     "00_docs/STYLEID_ORIGINAL_README.md": "14e7fc28db13a2d2e26b44028a6ff5bdf8c87d1ff17c5e986f3bc00ea4025462",
-    "00_docs/TRAIN_VA_TRONG_SO_DRIVE.md": "505e46a0e2c5ce74947ce4965ae7fd0c4f31118f5fe0dd74c6cc598ec954f5aa",
+    "00_docs/TRAIN_VA_TRONG_SO_DRIVE.md": "c3d41c1994b264be16da02e3407c78d2e3164e52472e2d7e6d83bb94b4db1a83",
     "01_train/colab/Dong2_Train_ID_Style_Khong_Ortho.ipynb": "c500f315bd3a6d49bac162539757345cadc07175d997df3671f7f24a04e3aacb",
     "01_train/colab/Dong2_Train_ID_Style_Khong_Ortho.py": "635f3f7ecfea2a21d2b175ac3ac8ea8b90c6c35ae7a35e111e801de6d1da5d9c",
     "01_train/train_a100_50.py": "abfbebbccdd59878221b7eed352fe5f2342237f696d364a5a8f480f0fa16b76e",
@@ -35,11 +35,27 @@
     "03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb": "a39fb010e4b54595721e2decb80e1579d3e1ed8187fa3ba33ce3c51fced100be",
     "03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.py": "790a9f75293b53158427b52df6e74a32f609e18d335def2c5fa1786b0118e810",
     "04_demo/demo_leace.py": "2ea2df989d160fd445ca18dc579e632fe76539556667684146220a0a82f8923b",
-    "04_demo/server.py": "627b9ae495d62b3a0f89b21a3777b19fa8bc902a048bbaeb2b6d4deac7ad4b8b",
-    "README_VI.md": "b051913c144d12549505a787c8b735bcfa10c33e29afcf80e67347432d00a4ac",
+    "04_demo/server.py": "b94d1b6ac01ae3fc068e1edaf2a094233b15c563fab43fe21ef06c842befc5b0",
+    "README_VI.md": "d01bb45542d15c0af1ac59a2457c6f51ed62d6011808cd31d20c320da37bebf0",
     "assets/soup_leace_metadata.json": "102f90dde8b2a35beb579161f1c9763b2d247caed432f96ca4fc85fa60697311",
     "assets/soup_leace_operator.npz": "ee22bc2f2b3e84cbcade7d113b1898b5e76455e54407125b64ffe52e3c7ee6f8",
     "mo_server.bat": "d0add1eace4010c741069738e74b167f438115993b804fcdf135c3db7ed30c2c",
-    "requirements.txt": "938886d47c16c878e8a39b8ee2ff1cee34811733c205a5d3e1a9f41a6b82272a"
+    "requirements.txt": "938886d47c16c878e8a39b8ee2ff1cee34811733c205a5d3e1a9f41a6b82272a",
+    "04_demo/demo_hard_positive.py": "014f93ee9f3adb4c1d401f3f3b92fcbfb13f1dc5938627ff5061f5055fbb940a",
+    "assets/lfw_hard_positive_adapter.npz": "7037174863dea038321fcfa192aeb01df0583ee622113981f0d38d0e593efa39",
+    "assets/lfw_hard_positive_metadata.json": "d7d06cfb8a799e33a77a7ff725657b64e155870889fb7566c5c0ac3ec5cffe9d"
+  },
+  "web_demo": {
+    "default_mode": "dual_hp",
+    "default_threshold": 0.3,
+    "comparison_dimension": 1280,
+    "scoring": "0.5 StyleID cosine + 0.5 Hard-Positive(ID512) cosine",
+    "adapter": "assets/lfw_hard_positive_adapter.npz",
+    "adapter_metadata": "assets/lfw_hard_positive_metadata.json",
+    "other_modes": [
+      "dual",
+      "raw",
+      "leace"
+    ]
   }
 }

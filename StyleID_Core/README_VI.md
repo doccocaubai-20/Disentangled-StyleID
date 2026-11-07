@@ -24,7 +24,9 @@ Kết quả đã nhận được lưu trong [bảng Markdown](00_docs/KET_QUA_CO
 | `01_train/colab/Dong2_Train_ID_Style_Khong_Ortho.py` | Mã Python của notebook đối chứng |
 | `02_soup/tao_soup.py` | Trộn hai cặp checkpoint S6 và A100 trên CPU |
 | `03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb` | Chạy ba bảng kiểm chứng từ ảnh và checkpoint |
-| `04_demo/server.py` và `04_demo/demo_leace.py` | Web demo và lớp áp dụng bộ lọc LEACE |
+| `04_demo/server.py` | Web demo Dual-Branch + Hard-Positive, mặc định ngưỡng 0,30 |
+| `04_demo/demo_hard_positive.py` và `assets/lfw_hard_positive_*` | Adapter và metadata dùng đúng trọng số nhúng trong notebook |
+| `04_demo/demo_leace.py` | Bộ lọc cho chế độ LEACE |
 | `assets/soup_leace_operator.npz` và metadata | Bộ lọc bắt buộc của demo LEACE |
 | `.env.example` | Cấu hình đường dẫn cho demo |
 | `MANIFEST.json` | Danh sách và SHA256 các file phát hành |
@@ -60,8 +62,10 @@ disentangled_lora_clip_SOUP_S6_A100.pt
 disentangled_head_SOUP_S6_A100.pt
 ```
 
-Bấm `mo_server.bat` hoặc chạy `python 04_demo/server.py`. Bộ lọc LEACE và metadata trong `assets/` phải đi cùng mã demo. Server kiểm tra hash checkpoint và bộ lọc. Lần đầu chạy có thể tải CLIP và StyleID.
+Bấm `mo_server.bat` hoặc chạy `python 04_demo/server.py`. Giữ toàn bộ `04_demo/` và `assets/` cùng mã demo. Server kiểm tra hash checkpoint, bộ lọc và adapter. Lần đầu chạy có thể tải CLIP và StyleID.
 
-Web so sánh hai ảnh bằng StyleID, Soup hoặc Soup + LEACE. Ba bảng cuối dùng Dual-Branch và biến thể Hard-Positive trong notebook kiểm chứng. Ngưỡng web mặc định 0,4 phục vụ thử nghiệm và chưa được hiệu chuẩn theo từng model.
+Web mặc định đối chiếu StyleID với **Dual-Branch + Hard-Positive**, cùng cấu hình dòng cuối bảng LFW. Điểm cuối bằng 0,5 lần cosine StyleID cộng 0,5 lần cosine của ID512 sau adapter Hard-Positive. Giao diện hiển thị 1.280 chiều và điểm từng nhánh.
+
+Ngưỡng mặc định 0,30 tương ứng cột Acc@0.3 của bảng LFW. Có thể đổi ngưỡng và chuyển sang Dual-Branch, Disentangle ID512 hoặc Disentangle + LEACE sau khi tính, các điểm đã tính được dùng lại. API `/api/compare` mặc định chọn `mode=dual_hp`; giá trị `mode` còn hỗ trợ `dual`, `raw`, `leace`. Trường `use_leace` của API trước được giữ để các lời gọi cũ tiếp tục chọn raw hoặc LEACE.
 
 Có thể upload ảnh của mình. Preset ảnh cần tài nguyên riêng qua `STYLEID_RESOURCES`. `HF_HOME` đặt vị trí cache tải model. Biến môi trường hệ thống được ưu tiên hơn `.env`.

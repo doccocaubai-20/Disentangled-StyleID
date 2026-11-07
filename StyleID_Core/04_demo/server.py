@@ -14,9 +14,9 @@ _os.chdir(RESOURCE_ROOT)
 # -*- coding: utf-8 -*-
 """
 ==============================================================================
-HỆ THỐNG ĐÁNH GIÁ THỰC NGHIỆM: STYLEID vs DISENTANGLED-STYLEID (MODEL SOUP)
+DEMO STYLEID VÀ DUAL-BRANCH VỚI HARD-POSITIVE
 Báo cáo đề tài: Nhận diện khuôn mặt dưới tác động phong cách hóa
-Khởi chạy: python web_demo.py
+Khởi chạy: python 04_demo/server.py
 Truy cập: http://localhost:8000
 ==============================================================================
 """
@@ -38,7 +38,9 @@ from pydantic import BaseModel
 import webbrowser
 import threading
 from pathlib import Path
+from typing import Literal
 from demo_leace import DemoLeace
+from demo_hard_positive import load_hard_positive
 
 DEMO_ROOT = Path(globals().get('RESOURCE_ROOT', Path(__file__).resolve().parent))
 os.chdir(DEMO_ROOT)
@@ -99,22 +101,22 @@ def load_image_clean(image_or_path):
 # 2. NẠP MÔ HÌNH VÀ BỘ TIỀN XỬ LÝ VÀO BỘ NHỚ
 # ------------------------------------------------------------------------------
 print("================================================================================")
-print("KHOI DONG HE THONG SO SANH THUC NGHIEM STYLEID vs DISENTANGLED-STYLEID")
+print("KHOI DONG STYLEID vs DUAL-BRANCH + HARD-POSITIVE")
 print(f"Thiet bi tinh toan: {device.upper()} ({device_name})")
 print("================================================================================")
 
 BASE_REVISION = '32bd64288804d66eefd0ccbe215aa642df71cc41'
 STYLEID_REVISION = '1967c354f339a636e5b3e16ecab3d0075aa27ab1'
-processor = CLIPProcessor.from_pretrained('openai/clip-vit-large-patch14', revision=BASE_REVISION)
+processor = CLIPProcessor.from_pretrained('kwanY/styleid', revision=STYLEID_REVISION)
 
 # A. Mô hình đối chứng: StyleID Chính chủ
 print("--> Nạp mô hình đối chứng: StyleID (kwanY/styleid)...")
-official_model = CLIPModel.from_pretrained('kwanY/styleid', revision=STYLEID_REVISION, attn_implementation='eager').to(device)
+official_model = CLIPModel.from_pretrained('kwanY/styleid', revision=STYLEID_REVISION, torch_dtype=torch.float32, attn_implementation='eager').to(device)
 official_model.eval()
 
 # B. Mô hình đề tài: Disentangled-StyleID (Model Soup)
 print("--> Nạp mô hình đề tài: Disentangled-StyleID (Model Soup)...")
-soup_model = CLIPModel.from_pretrained('openai/clip-vit-large-patch14', revision=BASE_REVISION, attn_implementation='eager').to(device)
+soup_model = CLIPModel.from_pretrained('openai/clip-vit-large-patch14', revision=BASE_REVISION, torch_dtype=torch.float32, attn_implementation='eager').to(device)
 for p in soup_model.parameters(): p.requires_grad = False
 apply_lora_to_clip(soup_model, r=8)
 soup_head = DisentangledHead().to(device)
@@ -123,10 +125,10 @@ soup_lora_path = str(CHECKPOINT_ROOT/'disentangled_lora_clip_SOUP_S6_A100.pt')
 soup_head_path = str(CHECKPOINT_ROOT/'disentangled_head_SOUP_S6_A100.pt')
 if not os.path.isfile(soup_lora_path) or not os.path.isfile(soup_head_path):
     raise FileNotFoundError('Missing exact Soup files. Set STYLEID_CHECKPOINT_DIR; no shard fallback.')
-model_display_name = 'Disentangled-StyleID (Model Soup)'
+model_display_name = 'Dual-Branch + Hard-Positive'
 
-soup_model.load_state_dict(torch.load(soup_lora_path, map_location=device, weights_only=True), strict=True)
-head_state = torch.load(soup_head_path, map_location=device, weights_only=True)
+soup_model.load_state_dict(torch.load(soup_lora_path, map_location='cpu', weights_only=True), strict=True)
+head_state = torch.load(soup_head_path, map_location='cpu', weights_only=True)
 soup_head.load_state_dict({k:v for k,v in head_state.items() if k.startswith('id_proj.')}, strict=True)
 soup_model.eval()
 soup_head.eval()
@@ -135,6 +137,38 @@ soup_head.eval()
 leace_filter = DemoLeace(_HERE/'assets'/'soup_leace_operator.npz',
                          _HERE/'assets'/'soup_leace_metadata.json')
 leace_filter.validate_checkpoints(soup_lora_path, soup_head_path)
+hp_adapter, hp_metadata = load_hard_positive(
+    _HERE/'assets'/'lfw_hard_positive_adapter.npz',
+    _HERE/'assets'/'lfw_hard_positive_metadata.json',
+    device,
+)
+if hp_metadata['checkpoint_sha256'] != leace_filter.metadata['checkpoint_sha256']:
+    raise ValueError('Hard-Positive and Soup checkpoint bindings differ')
+if hp_metadata['styleid_revision'] != STYLEID_REVISION or hp_metadata['base_revision'] != BASE_REVISION:
+    raise ValueError('Hard-Positive model revisions differ from the locked notebook')
+
+MODEL_MODES = {
+    'dual_hp': {
+        'name': 'Dual-Branch + Hard-Positive',
+        'dimension': 1280,
+        'mechanism': '50% StyleID + 50% ID512 sau Hard-Positive',
+    },
+    'dual': {
+        'name': 'Dual-Branch',
+        'dimension': 1280,
+        'mechanism': '50% StyleID + 50% ID512',
+    },
+    'raw': {
+        'name': 'Disentangle ID512',
+        'dimension': 512,
+        'mechanism': 'Nhánh danh tính ID512',
+    },
+    'leace': {
+        'name': 'Disentangle + LEACE',
+        'dimension': 512,
+        'mechanism': 'ID512 → LEACE → chuẩn hóa L2',
+    },
+}
 
 # Làm ấm mô hình
 dummy_img = Image.new('RGB', (224, 224), (128, 128, 128))
@@ -192,8 +226,9 @@ PRESETS = {
 class CompareRequest(BaseModel):
     img1_base64: str
     img2_base64: str
-    threshold: float = 0.40
-    use_leace: bool = False
+    threshold: float = 0.30
+    mode: Literal['dual_hp', 'dual', 'raw', 'leace'] | None = None
+    use_leace: bool | None = None
 
 @app.get("/api/preset/{preset_id}")
 async def get_preset(preset_id: str):
@@ -225,48 +260,63 @@ async def compare_images(req: CompareRequest):
         pv2 = processor(images=im2, return_tensors='pt')['pixel_values'].to(device)
 
         with torch.no_grad():
-            # StyleID Official
-            f1_off = official_model.get_image_features(pixel_values=pv1)
-            f2_off = official_model.get_image_features(pixel_values=pv2)
+            f1_off = official_model.visual_projection(official_model.vision_model(pixel_values=pv1).pooler_output)
+            f2_off = official_model.visual_projection(official_model.vision_model(pixel_values=pv2).pooler_output)
             e1_off = F.normalize(f1_off, dim=-1)
             e2_off = F.normalize(f2_off, dim=-1)
-            sim_off = float((e1_off * e2_off).sum(dim=-1).item())
 
-            # Disentangled-StyleID
             f1_my = soup_model.visual_projection(soup_model.vision_model(pixel_values=pv1).pooler_output)
             f2_my = soup_model.visual_projection(soup_model.vision_model(pixel_values=pv2).pooler_output)
             zid1 = soup_head(f1_my)
             zid2 = soup_head(f2_my)
-            sim_my = float((zid1 * zid2).sum(dim=-1).item())
+            identity = torch.cat((zid1, zid2)).float()
+            adapted = hp_adapter(identity).cpu().numpy().astype(np.float64)
+            official = torch.cat((e1_off, e2_off)).cpu().numpy().astype(np.float64)
+            raw = identity.cpu().numpy().astype(np.float64)
 
-        filtered = leace_filter.apply(torch.cat((zid1, zid2)).detach().cpu().numpy())
-        sim_leace = float(np.dot(filtered[0], filtered[1]))
-        sim_selected = sim_leace if req.use_leace else sim_my
+        sim_off = float((official[0] * official[1]).sum())
+        sim_my = float((raw[0] * raw[1]).sum())
+        sim_hp = float((adapted[0] * adapted[1]).sum())
+        filtered = leace_filter.apply(raw)
+        sim_leace = float((filtered[0] * filtered[1]).sum())
+        scores = {
+            'dual_hp': 0.5 * sim_off + 0.5 * sim_hp,
+            'dual': 0.5 * sim_off + 0.5 * sim_my,
+            'raw': sim_my,
+            'leace': sim_leace,
+        }
+        # Existing clients can still select raw/LEACE with use_leace.
+        legacy_modes = {None: 'dual_hp', False: 'raw', True: 'leace'}
+        mode = req.mode or legacy_modes[req.use_leace]
 
-        def result(score):
-            return {'similarity':score, 'is_same':bool(score >= req.threshold),
-                    'label':'Cùng danh tính' if score >= req.threshold else 'Khác danh tính', 'dim':'512 chiều'}
+        def result(score, dimension=512):
+            return {
+                'similarity': score,
+                'is_same': bool(score >= req.threshold),
+                'label': 'Cùng danh tính' if score >= req.threshold else 'Khác danh tính',
+                'dim': f'{dimension} chiều',
+            }
 
-        threshold = req.threshold
-        delta = sim_selected - sim_off
-
+        modes = {
+            key: {**result(scores[key], settings['dimension']), **settings}
+            for key, settings in MODEL_MODES.items()
+        }
+        selected = modes[mode]
         return {
-            "threshold": threshold,
+            "threshold": req.threshold,
             "device": f"{device.upper()} ({device_name})",
-            "model_name": "Soup + LEACE" if req.use_leace else "Soup gốc",
-            "use_leace": req.use_leace,
+            "model_name": selected['name'],
+            "mode": mode,
+            "use_leace": mode == 'leace',
+            "modes": modes,
             "soup_raw": result(sim_my),
             "soup_leace": result(sim_leace),
-            "styleid": {
-                "similarity": sim_off,
-                "is_same": bool(sim_off >= threshold),
-                "label": "Cùng danh tính" if sim_off >= threshold else "Khác danh tính",
-                "dim": "768 chiều"
-            },
-            "soup": result(sim_selected),
-            "comparison": {
-                "delta": round(delta, 4)
-            }
+            "id_hard_positive": result(sim_hp),
+            "dual_branch": result(scores['dual'], 1280),
+            "dual_hard_positive": result(scores['dual_hp'], 1280),
+            "styleid": result(sim_off, 768),
+            "soup": result(scores[mode], selected['dimension']),
+            "comparison": {"delta": round(scores[mode] - sim_off, 4)},
         }
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
@@ -280,7 +330,7 @@ HTML_PAGE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Disentangled-StyleID: Face Verification Benchmark</title>
+    <title>StyleID và Dual-Branch + Hard-Positive</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -296,13 +346,13 @@ HTML_PAGE = """
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-wrap items-center justify-between gap-4">
             <div>
                 <h1 class="text-base font-semibold text-slate-100 tracking-tight">
-                    Disentangled-StyleID: Thực nghiệm Nhận diện Khuôn mặt Đa phong cách
+                    StyleID và Dual-Branch + Hard-Positive
                 </h1>
-                <p class="text-xs text-slate-400">Đối chiếu trực tiếp giữa mô hình StyleID (SIGGRAPH 2026) và Disentangled-StyleID</p>
+                <p class="text-xs text-slate-400">Demo cấu hình cuối LFW từ notebook kiểm chứng Colab</p>
             </div>
             <div class="flex items-center gap-2 text-xs">
                 <span class="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">
-                    Mô hình: <span class="font-medium text-slate-100">Disentangled-StyleID (Soup)</span>
+                    Mô hình: <span id="activeModelBadge" class="font-medium text-slate-100">Dual-Branch + Hard-Positive</span>
                 </span>
                 <span class="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">
                     Thiết bị: <span id="deviceBadge" class="font-medium text-slate-100">CPU</span>
@@ -358,7 +408,7 @@ HTML_PAGE = """
             <!-- Image 2 -->
             <div class="panel rounded-lg p-4 flex flex-col justify-between">
                 <div class="flex items-center justify-between mb-2.5">
-                    <span class="text-xs font-semibold text-slate-300">Ảnh 2: Khuôn mặt đối chiếu (Phong cách hóa)</span>
+                    <span class="text-xs font-semibold text-slate-300">Ảnh 2: Khuôn mặt đối chiếu</span>
                     <button onclick="clearImage(2)" id="btnClear2" class="text-xs text-slate-500 hover:text-slate-300 hidden">Xóa</button>
                 </div>
                 <div id="dropzone2" onclick="document.getElementById('fileInput2').click()" class="border border-dashed border-slate-700 hover:border-slate-500 rounded p-4 flex flex-col items-center justify-center min-h-[240px] cursor-pointer transition bg-slate-900/50">
@@ -377,23 +427,25 @@ HTML_PAGE = """
                 <div class="w-full md:w-1/2">
                     <div class="flex justify-between items-center mb-1.5">
                         <label class="text-xs font-medium text-slate-300">Ngưỡng phân loại (Threshold):</label>
-                        <span id="thresholdVal" class="text-xs font-mono font-bold text-sky-400 bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800">0.40</span>
+                        <span id="thresholdVal" class="text-xs font-mono font-bold text-sky-400 bg-sky-950/60 px-2 py-0.5 rounded border border-sky-800">0.30</span>
                     </div>
-                    <input type="range" id="thresholdSlider" min="0.10" max="0.90" step="0.01" value="0.40" 
+                    <input type="range" id="thresholdSlider" min="0.10" max="0.90" step="0.01" value="0.30"
                            class="w-full h-1.5 bg-slate-700 rounded appearance-none cursor-pointer accent-sky-400"
                            oninput="updateThreshold(this.value)">
                     <div class="flex justify-between text-[11px] text-slate-500 mt-1">
                         <span>0.10</span>
-                        <span>0.40 (Ngưỡng demo)</span>
+                        <span>0.30 (Ngưỡng demo)</span>
                         <span>0.90</span>
                     </div>
                 </div>
 
                 <div>
-                    <label for="soupMode" class="text-xs text-slate-300">Chế độ Soup</label>
+                    <label for="soupMode" class="text-xs text-slate-300">Cấu hình so sánh</label>
                     <select id="soupMode" onchange="changeSoupMode()" class="block mt-1 p-2 rounded bg-slate-800 text-slate-100 text-xs border border-slate-600">
-                        <option value="raw">Soup gốc</option>
-                        <option value="leace">Soup + LEACE</option>
+                        <option value="dual_hp" selected>Dual-Branch + Hard-Positive</option>
+                        <option value="dual">Dual-Branch</option>
+                        <option value="raw">Disentangle ID512</option>
+                        <option value="leace">Disentangle + LEACE</option>
                     </select>
                 </div>
                 <div>
@@ -403,7 +455,7 @@ HTML_PAGE = """
                     </button>
                 </div>
             </div>
-            <p class="text-xs text-slate-400 mt-3">LEACE giảm thông tin phong cách trong ID512. Chế độ này đã giúp ảnh phong cách nhưng giảm một phần kết quả ảnh thật. Ngưỡng ở đây để thử nghiệm, chưa hiệu chuẩn riêng cho từng chế độ.</p>
+            <p class="text-xs text-slate-400 mt-3">Cấu hình cuối LFW kết hợp 50% điểm StyleID và 50% điểm ID sau Hard-Positive. Ngưỡng mặc định 0,30 tương ứng cột Acc@0.3 trong bảng kiểm chứng và có thể điều chỉnh.</p>
         </div>
 
         <!-- Loading -->
@@ -454,10 +506,10 @@ HTML_PAGE = """
                     <div class="flex justify-between items-start mb-3">
                         <div>
                             <span class="text-[11px] uppercase font-semibold text-sky-400">Mô hình đề tài</span>
-                            <h3 id="soupTitle" class="text-sm font-semibold text-slate-100">Soup gốc</h3>
+                            <h3 id="soupTitle" class="text-sm font-semibold text-slate-100">Dual-Branch + Hard-Positive</h3>
                         </div>
-                        <span class="text-[11px] px-2 py-0.5 rounded bg-sky-950/60 text-sky-400 border border-sky-800 font-medium">
-                            ID 512 chiều
+                        <span id="soupDimensionBadge" class="text-[11px] px-2 py-0.5 rounded bg-sky-950/60 text-sky-400 border border-sky-800 font-medium">
+                            1.280 chiều
                         </span>
                     </div>
 
@@ -492,7 +544,7 @@ HTML_PAGE = """
                             <tr>
                                 <th class="px-4 py-2">Chỉ số</th>
                                 <th class="px-4 py-2">StyleID (Đối chứng)</th>
-                                <th id="soupTableTitle" class="px-4 py-2 text-sky-300">Soup gốc</th>
+                                <th id="soupTableTitle" class="px-4 py-2 text-sky-300">Dual-Branch + Hard-Positive</th>
                                 <th class="px-4 py-2 text-right">Chênh lệch (Δ)</th>
                             </tr>
                         </thead>
@@ -504,22 +556,22 @@ HTML_PAGE = """
                                 <td id="tblDelta" class="px-4 py-2 text-right font-mono font-medium">0.0000</td>
                             </tr>
                             <tr>
-                                <td class="px-4 py-2 text-slate-400">Phán đoán tại ngưỡng <span class="tblThVal">0.40</span></td>
+                                <td class="px-4 py-2 text-slate-400">Phán đoán tại ngưỡng <span class="tblThVal">0.30</span></td>
                                 <td id="tblPredOff" class="px-4 py-2">—</td>
                                 <td id="tblPredSoup" class="px-4 py-2 text-sky-300">—</td>
                                 <td id="tblPredMatch" class="px-4 py-2 text-right text-slate-400">—</td>
                             </tr>
                             <tr>
-                                <td class="px-4 py-2 text-slate-400">Kích thước vector đặc trưng ID</td>
-                                <td class="px-4 py-2">768 chiều (CLIP LoRA)</td>
-                                <td class="px-4 py-2 text-sky-300">512 chiều (Nhánh danh tính)</td>
-                                <td class="px-4 py-2 text-right text-slate-400">-256 chiều</td>
+                                <td class="px-4 py-2 text-slate-400">Kích thước vector so sánh</td>
+                                <td class="px-4 py-2">768 chiều (StyleID)</td>
+                                <td id="soupDimension" class="px-4 py-2 text-sky-300">1.280 chiều</td>
+                                <td id="dimensionDelta" class="px-4 py-2 text-right text-slate-400">+512 chiều</td>
                             </tr>
                             <tr>
-                                <td class="px-4 py-2 text-slate-400">Cơ chế xử lý phong cách</td>
+                                <td class="px-4 py-2 text-slate-400">Cách tính biểu diễn</td>
                                 <td class="px-4 py-2">Không phân rã (Học gộp)</td>
-                                <td id="soupMechanism" class="px-4 py-2 text-sky-300">Nhánh ID của Soup</td>
-                                <td class="px-4 py-2 text-right text-slate-400">Giảm ảnh hưởng phong cách</td>
+                                <td id="soupMechanism" class="px-4 py-2 text-sky-300">50% StyleID + 50% ID512 sau Hard-Positive</td>
+                                <td id="soupMechanismNote" class="px-4 py-2 text-right text-slate-400">Kết hợp hai nhánh</td>
                             </tr>
                         </tbody>
                     </table>
@@ -654,7 +706,7 @@ HTML_PAGE = """
                         img1_base64: img1Data,
                         img2_base64: img2Data,
                         threshold: th,
-                        use_leace: document.getElementById('soupMode').value === 'leace'
+                        mode: document.getElementById('soupMode').value
                     })
                 });
                 const data = await res.json();
@@ -681,13 +733,23 @@ HTML_PAGE = """
         function recalcWithThreshold(th) {
             if (!lastResult) return;
             const simOff = lastResult.styleid.similarity;
-            const useLeace = document.getElementById('soupMode').value === 'leace';
-            const simSoup = (useLeace ? lastResult.soup_leace : lastResult.soup_raw).similarity;
-            const title = useLeace ? 'Soup + LEACE' : 'Soup gốc';
+            const mode = document.getElementById('soupMode').value;
+            const selected = lastResult.modes[mode];
+            const simSoup = selected.similarity;
+            const title = selected.name;
             document.getElementById('soupTitle').innerText = title;
             document.getElementById('soupTableTitle').innerText = title;
-            document.getElementById('soupMechanism').innerText = useLeace ? 'ID512 → LEACE → chuẩn hóa L2' : 'Nhánh ID của Soup';
-            document.getElementById('soupBothScores').innerText = `Gốc: ${lastResult.soup_raw.similarity.toFixed(4)} · LEACE: ${lastResult.soup_leace.similarity.toFixed(4)}`;
+            document.getElementById('activeModelBadge').innerText = title;
+            document.getElementById('soupMechanism').innerText = selected.mechanism;
+            document.getElementById('soupDimension').innerText = selected.dim;
+            document.getElementById('soupDimensionBadge').innerText = selected.dim;
+            const dimensionDelta = selected.dimension - 768;
+            document.getElementById('dimensionDelta').innerText = `${dimensionDelta >= 0 ? '+' : ''}${dimensionDelta} chiều`;
+            document.getElementById('soupMechanismNote').innerText = selected.dimension === 1280 ? 'Kết hợp hai nhánh' : 'Nhánh danh tính';
+            const component = mode === 'dual_hp' ? lastResult.id_hard_positive : lastResult.soup_raw;
+            document.getElementById('soupBothScores').innerText = selected.dimension === 1280
+                ? `StyleID: ${simOff.toFixed(4)} · ID${mode === 'dual_hp' ? ' + HP' : ''}: ${component.similarity.toFixed(4)} · 50/50`
+                : `ID512: ${lastResult.soup_raw.similarity.toFixed(4)} · LEACE: ${lastResult.soup_leace.similarity.toFixed(4)}`;
             const delta = simSoup - simOff;
 
             const isSameOff = simOff >= th;
@@ -731,7 +793,9 @@ HTML_PAGE = """
         }
 
         function changeSoupMode() {
-            const title = document.getElementById('soupMode').value === 'leace' ? 'Soup + LEACE' : 'Soup gốc';
+            const selector = document.getElementById('soupMode');
+            const title = selector.options[selector.selectedIndex].text;
+            document.getElementById('activeModelBadge').innerText = title;
             document.getElementById('soupTitle').innerText = title;
             document.getElementById('soupTableTitle').innerText = title;
             if (lastResult) recalcWithThreshold(parseFloat(document.getElementById('thresholdSlider').value));

@@ -51,9 +51,13 @@ disentangled_head_a100_final.pt
 
 Soup mặc định trộn 50/50 và xuất vào `checkpoints/soup/`. Parent khác phiên bản có thể tạo checkpoint khác kết quả đã nhận. Notebook kiểm chứng khóa SHA256 để nhận diện đúng các checkpoint.
 
-## Bộ lọc dùng cho demo
+## Adapter và bộ lọc dùng cho demo
 
-Demo web đọc `assets/soup_leace_operator.npz` cùng `assets/soup_leace_metadata.json`. Đây là bộ lọc LEACE lịch sử dùng cho Soup. Metadata lưu hash bộ lọc và cặp checkpoint tương ứng. Dòng cuối của bảng kết quả hiện tại là Dual-Branch, và bảng LFW có thêm Hard-Positive.
+Demo mặc định dùng **Dual-Branch + Hard-Positive**, ngưỡng 0,30. `assets/lfw_hard_positive_adapter.npz` chứa đúng hai ma trận adapter đã nhúng trong notebook kiểm chứng Colab. `assets/lfw_hard_positive_metadata.json` khóa SHA256, revision của StyleID và CLIP, cùng cặp checkpoint Soup.
+
+Điểm cuối bằng 0,5 cosine StyleID cộng 0,5 cosine ID512 sau adapter. Hai nhánh đã chuẩn hóa tương đương vector ghép 1.280 chiều. Chạy demo cần hai checkpoint Soup ở trên và truy cập model StyleID.
+
+Chế độ LEACE vẫn đọc `assets/soup_leace_operator.npz` cùng `assets/soup_leace_metadata.json`. Đây là bộ lọc LEACE lịch sử của Soup, được chọn riêng qua menu cấu hình.
 
 ## Chia sẻ cho nhóm
 
