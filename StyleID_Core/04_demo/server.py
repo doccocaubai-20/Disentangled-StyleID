@@ -1,9 +1,10 @@
 # Paths work independently of the terminal's current directory.
 from pathlib import Path as _Path
 import os as _os
-_HERE = _Path(__file__).resolve().parents[1]
+_DEMO_DIR = _Path(__file__).resolve().parent
+_HERE = _DEMO_DIR.parent
 from dotenv import load_dotenv as _load_dotenv
-_load_dotenv(_HERE / '.env', override=False)
+_load_dotenv(_DEMO_DIR / '.env', override=False)
 _DEFAULT_RESOURCES = _HERE if (_HERE/'SKSF-A_data').is_dir() else _HERE.parent
 RESOURCE_ROOT = _Path(_os.environ.get('STYLEID_RESOURCES', str(_DEFAULT_RESOURCES))).resolve()
 _CKPT_OPTIONS = [_HERE/'checkpoints'/'soup', _HERE, RESOURCE_ROOT]

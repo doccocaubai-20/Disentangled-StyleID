@@ -1,5 +1,7 @@
 # Kết quả kiểm chứng Colab
 
+Các bảng dưới đây lưu kết quả của lượt Colab đã nhận. Khi chạy lại notebook, hai bảng xác minh hiển thị theo mẫu chung, có thêm Acc@0.4 và Acc@0.5 cho LFW.
+
 ## SKSF A xác minh danh tính
 
 1.876 cặp gồm 938 cặp cùng người và 938 cặp khác người, lấy từ 1.072 ảnh.

@@ -6,9 +6,7 @@ Mã nguồn cuối cùng để kiểm chứng StyleID, ID + Style không trực 
 
 [Mở notebook kiểm chứng](https://colab.research.google.com/github/doccocaubai-20/Disentangled-StyleID/blob/main/StyleID_Core/03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb), chọn GPU và bấm **Run all**. Notebook tự cài thư viện, tải ảnh và checkpoint, rồi tính ba bảng từ ảnh gốc. Các file Drive cần có quyền tải và còn hạn mức.
 
-- [Notebook kiểm chứng](StyleID_Core/03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb)
-- [Mã Python tương ứng](StyleID_Core/03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.py)
-- [Kết quả Colab cuối cùng](StyleID_Core/00_docs/KET_QUA_COLAB.md)
+- [Kết quả benchmark SKSF-A và LFW](StyleID_Core/03_benchmark/result_benchmark.md)
 - [Bảng Word có thể chỉnh sửa](StyleID_Core/00_docs/KET_QUA_KIEM_CHUNG_4_MODELS_COLAB.docx)
 
 ## Mã chính
@@ -17,13 +15,15 @@ Mã nguồn cuối cùng để kiểm chứng StyleID, ID + Style không trực 
 |---|---|
 | [01_train](StyleID_Core/01_train/) | Recipe train có trực giao và đối chứng không trực giao |
 | [02_soup](StyleID_Core/02_soup/) | Tạo trọng số Soup từ S6 và A100 |
-| [03_benchmark/colab](StyleID_Core/03_benchmark/colab/) | Notebook và Python kiểm chứng cuối cùng |
+| [03_benchmark/colab](StyleID_Core/03_benchmark/colab/) | Notebook kiểm chứng duy nhất cho SKSF-A và LFW |
 | [04_demo](StyleID_Core/04_demo/) | Demo cấu hình cuối LFW Dual-Branch + Hard-Positive |
 | [00_docs](StyleID_Core/00_docs/) | Kết quả, vị trí trọng số và thông tin StyleID gốc |
 
 [Hướng dẫn sử dụng](StyleID_Core/README_VI.md) · [Trọng số trên Drive](StyleID_Core/00_docs/TRAIN_VA_TRONG_SO_DRIVE.md)
 
 ## Cách đọc kết quả
+
+Hai bảng xác minh dùng cùng các cột TPR@1% FPR, Acc@0.3, Acc@0.4, Acc@0.5 và AUROC. Notebook hiển thị bốn chữ số thập phân và in đậm kết quả cao nhất của từng cột.
 
 Dual-Branch ghép vector StyleID 768 chiều với vector ID512 của Disentangle, với trọng số cosine 50/50. Biến thể Hard-Positive được ghi thành dòng riêng trong bảng LFW. Demo web mặc định dùng Dual-Branch + Hard-Positive với ngưỡng 0,30, cùng cấu hình dòng cuối LFW.
 

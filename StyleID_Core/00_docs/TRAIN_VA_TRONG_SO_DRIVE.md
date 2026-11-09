@@ -22,14 +22,6 @@ Mở `01_train/colab/Dong2_Train_ID_Style_Khong_Ortho.ipynb` trên Colab và ch�
 
 Recipe dùng CLIP mới, LoRA và head mới, ID512 và style256, loss ID cộng 0,5 lần loss style. Loss trực giao được tắt. Seed 20261024, batch 128, hai epoch, gộp năm shard [1,2,4,5,6]. Checkpoint và metadata được lưu vào thư mục lượt chạy mới trên Drive, dữ liệu tạm được dọn sau khi lưu thành công.
 
-Nếu chạy file Python riêng, cài thư viện trước.
-
-```python
-%pip install -q transformers==4.52.0 huggingface_hub Pillow tqdm scikit-learn
-import runpy
-runpy.run_path('/content/Dong2_Train_ID_Style_Khong_Ortho.py', run_name='__main__')
-```
-
 ## Hai nhánh có trực giao và tạo Soup
 
 `01_train/train_a100_50.py` là recipe gộp shard [1,2,4,5,6], hai epoch. `01_train/train_shard_0_den_6.py` chạy tiếp một shard mỗi lần. Lịch sử checkpoint S6 có các lượt đầu khác recipe trainer chung, vì vậy cần checkpoint đã lưu để kiểm chứng đúng kết quả cuối.
@@ -37,7 +29,7 @@ runpy.run_path('/content/Dong2_Train_ID_Style_Khong_Ortho.py', run_name='__main_
 ```text
 python 01_train/train_a100_50.py --output-dir /content/drive/MyDrive/StyleID_A100_Champion/a100_50_new
 python 01_train/train_shard_0_den_6.py --shard 6 --work-dir /content/drive/MyDrive/StyleID_A100_Champion/shard_seq_new
-python 02_soup/tao_soup.py --parent-dir /content/drive/MyDrive/StyleID_A100_Champion
+python 02_soup/model_soup_averaging.py --parent-dir /content/drive/MyDrive/StyleID_A100_Champion
 ```
 
 Lệnh shard 6 cần cặp checkpoint generic của shard trước trong work-dir. Tạo Soup yêu cầu bốn file cha.
