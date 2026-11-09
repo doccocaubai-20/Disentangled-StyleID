@@ -1,6 +1,6 @@
 # Kết quả kiểm chứng Colab
 
-Các bảng dưới đây lưu kết quả của lượt Colab đã nhận. Khi chạy lại notebook, hai bảng xác minh hiển thị theo mẫu chung, có thêm Acc@0.4 và Acc@0.5 cho LFW.
+Các bảng dưới đây lưu kết quả của lượt Colab đã nhận, gồm cả hai cấu hình Dual-Branch đã được đo trên LFW. Bảng benchmark hiện hành dùng cấu hình có adapter cho dòng Dual-Branch 1280D. [Kết quả benchmark hiện hành](../03_benchmark/result_benchmark.md)
 
 ## SKSF A xác minh danh tính
 

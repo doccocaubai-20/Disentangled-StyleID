@@ -25,7 +25,7 @@ Mã nguồn cuối cùng để kiểm chứng StyleID, ID + Style không trực 
 
 Hai bảng xác minh dùng cùng các cột TPR@1% FPR, Acc@0.3, Acc@0.4, Acc@0.5 và AUROC. Notebook hiển thị bốn chữ số thập phân và in đậm kết quả cao nhất của từng cột.
 
-Dual-Branch ghép vector StyleID 768 chiều với vector ID512 của Disentangle, với trọng số cosine 50/50. Biến thể Hard-Positive được ghi thành dòng riêng trong bảng LFW. Demo web mặc định dùng Dual-Branch + Hard-Positive với ngưỡng 0,30, cùng cấu hình dòng cuối LFW.
+Dual-Branch ghép vector StyleID 768 chiều với vector ID512 của Disentangle, với trọng số cosine 50/50. Trên LFW, dòng Dual-Branch 1280D áp dụng adapter Hard-Positive cho nhánh ID512. Demo web mặc định dùng cùng cấu hình với ngưỡng 0,30.
 
 Baseline là StyleID chạy lại trong cùng notebook. Các checkpoint có lịch train khác nhau, nên chênh lệch giữa các dòng chưa cô lập riêng tác động của loss trực giao. Giao thức cặp SKSF-A của nhóm đã được khóa. Tính năng truy vấn danh tính dùng 134 ảnh chụp làm gallery và 938 ảnh phác thảo làm truy vấn.
 

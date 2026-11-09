@@ -15,21 +15,21 @@ TPR@1% FPR là tỷ lệ chấp nhận đúng cặp cùng người khi tỷ lệ
 
 ## Bảng 2. Xác minh LFW View 2 (6.000 cặp)
 
-| Methods                     |   TPR@1% FPR ↑ |   Acc@0.3 ↑ |   Acc@0.4 ↑ |   Acc@0.5 ↑ |    AUROC ↑ |
-|-----------------------------|----------------|-------------|-------------|-------------|------------|
-| StyleID                     |         0.9433 |      0.9745 |      0.9470 |      0.8782 |     0.9971 |
-| ID + Style không trực giao  |         0.9733 |      0.8588 |      0.9475 |      0.9813 |     0.9984 |
-| Disentangle ID512           |         0.9860 |      0.8207 |      0.9358 |  **0.9817** |     0.9992 |
-| Dual-Branch 1280D           |     **0.9880** |      0.9610 |      0.9885 |      0.9753 | **0.9993** |
-| Dual-Branch + Hard-Positive |         0.9877 |  **0.9762** |  **0.9892** |      0.9660 |     0.9993 |
+Trên LFW, Dual-Branch 1280D kết hợp điểm cosine của StyleID 768D và ID512 sau adapter Hard-Positive theo tỷ lệ 50/50.
+
+| Methods                    |   TPR@1% FPR ↑ |   Acc@0.3 ↑ |   Acc@0.4 ↑ |   Acc@0.5 ↑ |    AUROC ↑ |
+|----------------------------|----------------|-------------|-------------|-------------|------------|
+| StyleID                    |         0.9433 |      0.9745 |      0.9470 |      0.8782 |     0.9971 |
+| ID + Style không trực giao |         0.9733 |      0.8588 |      0.9475 |      0.9813 |     0.9984 |
+| Disentangle ID512          |         0.9860 |      0.8207 |      0.9358 |  **0.9817** |     0.9992 |
+| Dual-Branch 1280D          |     **0.9877** |  **0.9762** |  **0.9892** |      0.9660 | **0.9993** |
 
 ### Độ chính xác 10-fold LFW
 
 - StyleID — 97.37% ± 0.72%
 - ID + Style không trực giao — 98.38% ± 0.54%
 - Disentangle ID512 — 98.58% ± 0.34%
-- Dual-Branch 1280D — 98.87% ± 0.38%
-- Dual-Branch + Hard-Positive — 98.87% ± 0.31%
+- Dual-Branch 1280D — 98.87% ± 0.31%
 
 Mỗi fold chọn ngưỡng trên chín fold còn lại. Kết quả là trung bình ± độ lệch chuẩn của mười fold.
 

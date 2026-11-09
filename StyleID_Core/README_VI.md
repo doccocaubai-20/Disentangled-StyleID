@@ -6,7 +6,7 @@ Bộ mã gồm huấn luyện, tạo Soup, kiểm chứng cuối cùng và demo 
 
 Mở [Kiem_Chung_Full_4Models_Colab.ipynb](03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb) trên Colab, chọn GPU rồi bấm **Run all**.
 
-Notebook tính lại từ ảnh và checkpoint cho bốn cấu hình StyleID, ID + Style không trực giao, Disentangle ID512 và Dual-Branch 1280D. Bảng LFW có thêm biến thể Dual-Branch + Hard-Positive. Hai nhánh được xử lý lần lượt để hạn chế dùng VRAM.
+Notebook tính lại từ ảnh và checkpoint cho bốn cấu hình StyleID, ID + Style không trực giao, Disentangle ID512 và Dual-Branch 1280D. Trên LFW, Dual-Branch 1280D dùng adapter Hard-Positive cho nhánh ID512. Hai nhánh được xử lý lần lượt để hạn chế dùng VRAM.
 
 SKSF-A gồm 1.072 ảnh và 1.876 cặp. LFW dùng 7.701 ảnh xuất hiện trong 6.000 cặp View 2, chia 10 fold. Notebook kiểm tra SHA256 của checkpoint và ảnh SKSF-A, kiểm tra archive LFW và dừng khi thiếu ảnh. Drive, Hugging Face và Figshare cần truy cập được.
 
