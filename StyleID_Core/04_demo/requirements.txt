@@ -8,5 +8,5 @@ pandas
 tqdm
 fastapi
 uvicorn
-gdown
+gdown>=6.3.0
 python-dotenv

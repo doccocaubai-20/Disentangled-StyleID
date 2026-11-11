@@ -1,153 +1,41 @@
-# Paths work independently of the terminal's current directory.
-from pathlib import Path as _Path
-import os as _os
-_DEMO_DIR = _Path(__file__).resolve().parent
-_HERE = _DEMO_DIR.parent
-from dotenv import load_dotenv as _load_dotenv
-_load_dotenv(_DEMO_DIR / '.env', override=False)
-_DEFAULT_RESOURCES = _HERE if (_HERE/'SKSF-A_data').is_dir() else _HERE.parent
-RESOURCE_ROOT = _Path(_os.environ.get('STYLEID_RESOURCES', str(_DEFAULT_RESOURCES))).resolve()
-_CKPT_OPTIONS = [_HERE/'checkpoints'/'soup', _HERE, RESOURCE_ROOT]
-_DEFAULT_CKPT = next((p for p in _CKPT_OPTIONS if (p/'disentangled_lora_clip_SOUP_S6_A100.pt').is_file()), RESOURCE_ROOT)
-CHECKPOINT_ROOT = _Path(_os.environ.get('STYLEID_CHECKPOINT_DIR', str(_DEFAULT_CKPT))).resolve()
-_os.chdir(RESOURCE_ROOT)
-
-# -*- coding: utf-8 -*-
-"""
-==============================================================================
-DEMO STYLEID VÀ DUAL-BRANCH VỚI HARD-POSITIVE
-Báo cáo đề tài: Nhận diện khuôn mặt dưới tác động phong cách hóa
-Khởi chạy: python 04_demo/server.py
-Truy cập: http://localhost:8000
-==============================================================================
-"""
-import os
-import sys
-import io
+"""Compare StyleID with the final Dual-Branch configurations."""
 import base64
-import numpy as np
+from binascii import Error as Base64Error
+from functools import lru_cache
+import io
+from pathlib import Path
+from threading import Lock, Thread
+from typing import Literal
+import webbrowser
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse, JSONResponse
+from PIL import Image, UnidentifiedImageError
+from pydantic import BaseModel, Field
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from PIL import Image
+from torch import nn
+from torch.nn import functional as F
 from transformers import CLIPModel, CLIPProcessor
 import uvicorn
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse, JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import webbrowser
-import threading
-from pathlib import Path
-from typing import Literal
-from demo_leace import DemoLeace
+
+from checkpoints import SOUP_SHA256, adapter_path, soup_paths
 from demo_hard_positive import load_hard_positive
+from lfw_presets import PRESETS, preset_paths
 
-DEMO_ROOT = Path(globals().get('RESOURCE_ROOT', Path(__file__).resolve().parent))
-os.chdir(DEMO_ROOT)
 
-# Cấu hình encoding UTF-8
-if sys.stdout.encoding != 'utf-8':
-    try: sys.stdout.reconfigure(encoding='utf-8')
-    except Exception: pass
-
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
-device_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'
-if torch.cuda.is_available():
+load_dotenv(Path(__file__).resolve().with_name('.env'), override=False)
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+DEVICE_NAME = torch.cuda.get_device_name(0) if DEVICE == 'cuda' else 'CPU'
+if DEVICE == 'cuda':
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
 
-# ------------------------------------------------------------------------------
-# 1. KIẾN TRÚC MÔ HÌNH
-# ------------------------------------------------------------------------------
-class LoRALinear(nn.Module):
-    def __init__(self, linear_layer, r=8, alpha=1.0):
-        super().__init__()
-        self.linear, self.scaling = linear_layer, alpha / r
-        self.lora_down = nn.Linear(linear_layer.in_features, r, bias=False)
-        self.lora_up = nn.Linear(r, linear_layer.out_features, bias=False)
-        nn.init.kaiming_uniform_(self.lora_down.weight, a=5**0.5)
-        nn.init.zeros_(self.lora_up.weight)
-    def forward(self, x):
-        return self.linear(x) + self.lora_up(self.lora_down(x)) * self.scaling
-
-def apply_lora_to_clip(model, r=8):
-    for layer in model.vision_model.encoder.layers:
-        attn = layer.self_attn
-        attn.q_proj = LoRALinear(attn.q_proj, r=r).to(device)
-        attn.k_proj = LoRALinear(attn.k_proj, r=r).to(device)
-        attn.v_proj = LoRALinear(attn.v_proj, r=r).to(device)
-        attn.out_proj = LoRALinear(attn.out_proj, r=r).to(device)
-
-class DisentangledHead(nn.Module):
-    def __init__(self, clip_dim=768, id_dim=512, style_dim=256):
-        super().__init__()
-        self.id_proj = nn.Sequential(nn.Linear(clip_dim, id_dim), nn.BatchNorm1d(id_dim), nn.PReLU())
-    def forward(self, feat):
-        return F.normalize(self.id_proj(feat), dim=-1)
-
-def load_image_clean(image_or_path):
-    if isinstance(image_or_path, str):
-        img = Image.open(image_or_path)
-    else:
-        img = image_or_path
-    if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
-        img = img.convert('RGBA')
-        canvas = Image.new('RGB', img.size, (255, 255, 255))
-        canvas.paste(img, mask=img.split()[3])
-        return canvas
-    return img.convert('RGB')
-
-# ------------------------------------------------------------------------------
-# 2. NẠP MÔ HÌNH VÀ BỘ TIỀN XỬ LÝ VÀO BỘ NHỚ
-# ------------------------------------------------------------------------------
-print("================================================================================")
-print("KHOI DONG STYLEID vs DUAL-BRANCH + HARD-POSITIVE")
-print(f"Thiet bi tinh toan: {device.upper()} ({device_name})")
-print("================================================================================")
-
 BASE_REVISION = '32bd64288804d66eefd0ccbe215aa642df71cc41'
 STYLEID_REVISION = '1967c354f339a636e5b3e16ecab3d0075aa27ab1'
-processor = CLIPProcessor.from_pretrained('kwanY/styleid', revision=STYLEID_REVISION)
-
-# A. Mô hình đối chứng: StyleID Chính chủ
-print("--> Nạp mô hình đối chứng: StyleID (kwanY/styleid)...")
-official_model = CLIPModel.from_pretrained('kwanY/styleid', revision=STYLEID_REVISION, torch_dtype=torch.float32, attn_implementation='eager').to(device)
-official_model.eval()
-
-# B. Mô hình đề tài: Disentangled-StyleID (Model Soup)
-print("--> Nạp mô hình đề tài: Disentangled-StyleID (Model Soup)...")
-soup_model = CLIPModel.from_pretrained('openai/clip-vit-large-patch14', revision=BASE_REVISION, torch_dtype=torch.float32, attn_implementation='eager').to(device)
-for p in soup_model.parameters(): p.requires_grad = False
-apply_lora_to_clip(soup_model, r=8)
-soup_head = DisentangledHead().to(device)
-
-soup_lora_path = str(CHECKPOINT_ROOT/'disentangled_lora_clip_SOUP_S6_A100.pt')
-soup_head_path = str(CHECKPOINT_ROOT/'disentangled_head_SOUP_S6_A100.pt')
-if not os.path.isfile(soup_lora_path) or not os.path.isfile(soup_head_path):
-    raise FileNotFoundError('Missing exact Soup files. Set STYLEID_CHECKPOINT_DIR; no shard fallback.')
-model_display_name = 'Dual-Branch + Hard-Positive'
-
-soup_model.load_state_dict(torch.load(soup_lora_path, map_location='cpu', weights_only=True), strict=True)
-head_state = torch.load(soup_head_path, map_location='cpu', weights_only=True)
-soup_head.load_state_dict({k:v for k,v in head_state.items() if k.startswith('id_proj.')}, strict=True)
-soup_model.eval()
-soup_head.eval()
-
-# Bind the packaged LEACE operator to the exact historical Soup checkpoints.
-leace_filter = DemoLeace(_HERE/'assets'/'soup_leace_operator.npz',
-                         _HERE/'assets'/'soup_leace_metadata.json')
-leace_filter.validate_checkpoints(soup_lora_path, soup_head_path)
-hp_adapter, hp_metadata = load_hard_positive(
-    _HERE/'assets'/'lfw_hard_positive_adapter.npz',
-    _HERE/'assets'/'lfw_hard_positive_metadata.json',
-    device,
-)
-if hp_metadata['checkpoint_sha256'] != leace_filter.metadata['checkpoint_sha256']:
-    raise ValueError('Hard-Positive and Soup checkpoint bindings differ')
-if hp_metadata['styleid_revision'] != STYLEID_REVISION or hp_metadata['base_revision'] != BASE_REVISION:
-    raise ValueError('Hard-Positive model revisions differ from the locked notebook')
-
+STYLEID_MODEL = 'kwanY/styleid'
+MODEL_LOCK = Lock()
 MODEL_MODES = {
     'dual_hp': {
         'name': 'Dual-Branch + Hard-Positive',
@@ -164,167 +52,212 @@ MODEL_MODES = {
         'dimension': 512,
         'mechanism': 'Nhánh danh tính ID512',
     },
-    'leace': {
-        'name': 'Disentangle + LEACE',
-        'dimension': 512,
-        'mechanism': 'ID512 → LEACE → chuẩn hóa L2',
-    },
 }
 
-# Làm ấm mô hình
-dummy_img = Image.new('RGB', (224, 224), (128, 128, 128))
-dummy_pv = processor(images=[dummy_img], return_tensors='pt')['pixel_values'].to(device)
-with torch.no_grad():
-    _ = official_model.get_image_features(pixel_values=dummy_pv)
-    _f = soup_model.visual_projection(soup_model.vision_model(pixel_values=dummy_pv).pooler_output)
-    _ = soup_head(_f)
-print("--> Khoi dong hoan tat, he thong san sang.")
 
-# ------------------------------------------------------------------------------
-# 3. FASTAPI BACKEND
-# ------------------------------------------------------------------------------
-app = FastAPI(title="Face Verification Benchmark")
+class LoRALinear(nn.Module):
+    def __init__(self, linear_layer, r=8, alpha=1.0):
+        super().__init__()
+        self.linear, self.scaling = linear_layer, alpha / r
+        self.lora_down = nn.Linear(linear_layer.in_features, r, bias=False)
+        self.lora_up = nn.Linear(r, linear_layer.out_features, bias=False)
+        nn.init.kaiming_uniform_(self.lora_down.weight, a=5**0.5)
+        nn.init.zeros_(self.lora_up.weight)
+    def forward(self, x):
+        return self.linear(x) + self.lora_up(self.lora_down(x)) * self.scaling
+
+def apply_lora_to_clip(model, r=8):
+    for layer in model.vision_model.encoder.layers:
+        attn = layer.self_attn
+        attn.q_proj = LoRALinear(attn.q_proj, r=r)
+        attn.k_proj = LoRALinear(attn.k_proj, r=r)
+        attn.v_proj = LoRALinear(attn.v_proj, r=r)
+        attn.out_proj = LoRALinear(attn.out_proj, r=r)
+
+class DisentangledHead(nn.Module):
+    def __init__(self, clip_dim=768, id_dim=512):
+        super().__init__()
+        self.id_proj = nn.Sequential(nn.Linear(clip_dim, id_dim), nn.BatchNorm1d(id_dim), nn.PReLU())
+    def forward(self, feat):
+        return F.normalize(self.id_proj(feat), dim=-1)
+
+def load_image_clean(img):
+    if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+        rgba = img.convert('RGBA')
+        canvas = Image.new('RGB', rgba.size, (255, 255, 255))
+        canvas.paste(rgba, mask=rgba.getchannel('A'))
+        return canvas
+    return img.convert('RGB')
+
+
+@lru_cache(maxsize=1)
+def load_styleid():
+    processor = CLIPProcessor.from_pretrained(STYLEID_MODEL, revision=STYLEID_REVISION)
+    model = CLIPModel.from_pretrained(
+        STYLEID_MODEL, revision=STYLEID_REVISION, torch_dtype=torch.float32, attn_implementation='eager',
+    )
+    return processor, model.requires_grad_(False).eval().to(DEVICE)
+
+
+@lru_cache(maxsize=1)
+def load_soup():
+    backbone_path, head_path = soup_paths()
+    model = CLIPModel.from_pretrained(
+        'openai/clip-vit-large-patch14', revision=BASE_REVISION,
+        torch_dtype=torch.float32, attn_implementation='eager',
+    )
+    apply_lora_to_clip(model)
+    model.load_state_dict(torch.load(backbone_path, map_location='cpu', weights_only=True, mmap=True))
+    head = DisentangledHead()
+    head_state = torch.load(head_path, map_location='cpu', weights_only=True)
+    head.load_state_dict({key: value for key, value in head_state.items() if key.startswith('id_proj.')})
+    return model.requires_grad_(False).eval().to(DEVICE), head.requires_grad_(False).eval().to(DEVICE)
+
+
+@lru_cache(maxsize=1)
+def load_adapter():
+    return load_hard_positive(
+        adapter_path(), DEVICE, soup_sha256=SOUP_SHA256,
+        base_revision=BASE_REVISION, styleid_revision=STYLEID_REVISION,
+    )
+
+
+def clip_features(model, pixels):
+    return model.visual_projection(model.vision_model(pixel_values=pixels).pooler_output)
+
+
+@torch.inference_mode()
+def score_pair(images, mode):
+    # Serialize first loads and inference so simultaneous requests share the same cached models.
+    with MODEL_LOCK:
+        adapter = load_adapter() if mode == 'dual_hp' else None
+        processor, official = load_styleid()
+        soup, head = load_soup()
+        pixels = processor(images=images, return_tensors='pt')['pixel_values'].to(DEVICE)
+        official_vectors = F.normalize(clip_features(official, pixels), dim=-1).double()
+        identity_vectors = head(clip_features(soup, pixels))
+        styleid = (official_vectors[0] * official_vectors[1]).sum().item()
+        raw = (identity_vectors[0].double() * identity_vectors[1].double()).sum().item()
+        scores = {'raw': raw, 'dual': 0.5 * (styleid + raw)}
+        adapted = None
+        if adapter is not None:
+            adapted_vectors = adapter(identity_vectors.float()).double()
+            adapted = (adapted_vectors[0] * adapted_vectors[1]).sum().item()
+            scores['dual_hp'] = 0.5 * (styleid + adapted)
+        return styleid, scores, adapted
+
+
+app = FastAPI(title='Face Verification Benchmark')
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=['*'],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=['*'],
+    allow_headers=['*'],
 )
 
-def image_to_base64(img_path):
-    if not os.path.exists(img_path): return None
-    with open(img_path, "rb") as f:
-        encoded = base64.b64encode(f.read()).decode("utf-8")
-        ext = os.path.splitext(img_path)[1].lower().replace('.', '')
-        if ext == 'jpg': ext = 'jpeg'
-        return f"data:image/{ext};base64,{encoded}"
-
-PRESETS = {
-    "1": {
-        "title": "Cặp 1: Ảnh thật vs Tranh vẽ (Cùng danh tính)",
-        "desc": "Cùng danh tính: Ảnh chụp thực tế đối chiếu với tranh nghệ thuật.",
-        "ground_truth": "Cùng danh tính",
-        "img1": "data/1.jpg",
-        "img2": "data/2.jpg"
-    },
-    "2": {
-        "title": "Cặp 2: SKSF-A Ký họa chì (Cùng danh tính)",
-        "desc": "Cùng danh tính: Ảnh chân dung thực tế đối chiếu với tranh ký họa Style 4.",
-        "ground_truth": "Cùng danh tính",
-        "img1": "SKSF-A_data/Photo/1.png",
-        "img2": "SKSF-A_data/style4/1.png"
-    },
-    "3": {
-        "title": "Cặp 3: SKSF-A Khác người (Khác danh tính)",
-        "desc": "Khác danh tính: Hai người khác nhau cùng vẽ theo phong cách Style 4.",
-        "ground_truth": "Khác danh tính",
-        "img1": "SKSF-A_data/Photo/1.png",
-        "img2": "SKSF-A_data/style4/10.png"
-    }
-}
 
 class CompareRequest(BaseModel):
-    img1_base64: str
-    img2_base64: str
-    threshold: float = 0.30
+    img1_base64: str | None = None
+    img2_base64: str | None = None
+    preset_id: str | None = None
+    threshold: float = Field(0.30, ge=-1, le=1)
     mode: Literal['dual_hp', 'dual', 'raw', 'leace'] | None = None
     use_leace: bool | None = None
 
-@app.get("/api/preset/{preset_id}")
-async def get_preset(preset_id: str):
+
+def get_preset_paths(preset_id):
     if preset_id not in PRESETS:
-        return JSONResponse({"error": "Không tìm thấy preset"}, status_code=404)
-    item = PRESETS[preset_id]
+        raise HTTPException(404, 'Không tìm thấy cặp ảnh LFW')
+    try:
+        return preset_paths(preset_id)
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise HTTPException(503, f'Không lấy được ảnh mẫu LFW: {exc}') from exc
+
+
+@app.get('/api/preset/{preset_id}')
+def get_preset(preset_id: str):
+    left, right = get_preset_paths(preset_id)
+    title, same_identity, _ = PRESETS[preset_id]
     return {
-        "id": preset_id,
-        "title": item["title"],
-        "desc": item["desc"],
-        "ground_truth": item["ground_truth"],
-        "img1": image_to_base64(item["img1"]),
-        "img2": image_to_base64(item["img2"])
+        'id': preset_id,
+        'title': title,
+        'desc': f'LFW View 2 · {preset_id} · {title}',
+        'ground_truth': 'Cùng danh tính' if same_identity else 'Khác danh tính',
+        'img1': 'data:image/jpeg;base64,' + base64.b64encode(left.read_bytes()).decode('ascii'),
+        'img2': 'data:image/jpeg;base64,' + base64.b64encode(right.read_bytes()).decode('ascii'),
     }
 
-@app.post("/api/compare")
-async def compare_images(req: CompareRequest):
-    try:
+
+@app.post('/api/compare')
+def compare_images(req: CompareRequest):
+    if req.preset_id is not None and req.preset_id not in PRESETS:
+        raise HTTPException(404, 'Không tìm thấy cặp ảnh LFW')
+    mode = req.mode
+    if mode is None:
+        mode = {True: 'leace', False: 'raw', None: 'dual_hp' if req.preset_id else 'dual'}[req.use_leace]
+    if mode == 'leace':
+        raise HTTPException(422, 'Chế độ LEACE đã được gỡ khỏi demo')
+    if mode == 'dual_hp' and not req.preset_id:
+        raise HTTPException(422, 'Hard-Positive chỉ dùng cho các cặp mẫu LFW')
+
+    if req.preset_id:
+        inputs = get_preset_paths(req.preset_id)
+    else:
         if not req.img1_base64 or not req.img2_base64:
-            return JSONResponse({"error": "Vui lòng chọn đủ 2 ảnh"}, status_code=400)
+            raise HTTPException(400, 'Vui lòng chọn đủ hai ảnh hoặc một cặp mẫu LFW')
+        try:
+            inputs = [
+                io.BytesIO(base64.b64decode(data.split(',')[-1], validate=True))
+                for data in (req.img1_base64, req.img2_base64)
+            ]
+        except Base64Error as exc:
+            raise HTTPException(400, 'Dữ liệu ảnh không hợp lệ') from exc
+    try:
+        images = []
+        for item in inputs:
+            with Image.open(item) as image:
+                images.append(load_image_clean(image))
+    except (UnidentifiedImageError, OSError) as exc:
+        raise HTTPException(400, 'Không đọc được ảnh') from exc
 
-        b64_1 = req.img1_base64.split(",")[-1]
-        im1 = load_image_clean(Image.open(io.BytesIO(base64.b64decode(b64_1))))
+    try:
+        styleid, scores, adapted = score_pair(images, mode)
+    except (OSError, RuntimeError, ValueError) as exc:
+        return JSONResponse({'error': str(exc)}, status_code=503)
 
-        b64_2 = req.img2_base64.split(",")[-1]
-        im2 = load_image_clean(Image.open(io.BytesIO(base64.b64decode(b64_2))))
-
-        pv1 = processor(images=im1, return_tensors='pt')['pixel_values'].to(device)
-        pv2 = processor(images=im2, return_tensors='pt')['pixel_values'].to(device)
-
-        with torch.no_grad():
-            f1_off = official_model.visual_projection(official_model.vision_model(pixel_values=pv1).pooler_output)
-            f2_off = official_model.visual_projection(official_model.vision_model(pixel_values=pv2).pooler_output)
-            e1_off = F.normalize(f1_off, dim=-1)
-            e2_off = F.normalize(f2_off, dim=-1)
-
-            f1_my = soup_model.visual_projection(soup_model.vision_model(pixel_values=pv1).pooler_output)
-            f2_my = soup_model.visual_projection(soup_model.vision_model(pixel_values=pv2).pooler_output)
-            zid1 = soup_head(f1_my)
-            zid2 = soup_head(f2_my)
-            identity = torch.cat((zid1, zid2)).float()
-            adapted = hp_adapter(identity).cpu().numpy().astype(np.float64)
-            official = torch.cat((e1_off, e2_off)).cpu().numpy().astype(np.float64)
-            raw = identity.cpu().numpy().astype(np.float64)
-
-        sim_off = float((official[0] * official[1]).sum())
-        sim_my = float((raw[0] * raw[1]).sum())
-        sim_hp = float((adapted[0] * adapted[1]).sum())
-        filtered = leace_filter.apply(raw)
-        sim_leace = float((filtered[0] * filtered[1]).sum())
-        scores = {
-            'dual_hp': 0.5 * sim_off + 0.5 * sim_hp,
-            'dual': 0.5 * sim_off + 0.5 * sim_my,
-            'raw': sim_my,
-            'leace': sim_leace,
-        }
-        # Existing clients can still select raw/LEACE with use_leace.
-        legacy_modes = {None: 'dual_hp', False: 'raw', True: 'leace'}
-        mode = req.mode or legacy_modes[req.use_leace]
-
-        def result(score, dimension=512):
-            return {
-                'similarity': score,
-                'is_same': bool(score >= req.threshold),
-                'label': 'Cùng danh tính' if score >= req.threshold else 'Khác danh tính',
-                'dim': f'{dimension} chiều',
-            }
-
-        modes = {
-            key: {**result(scores[key], settings['dimension']), **settings}
-            for key, settings in MODEL_MODES.items()
-        }
-        selected = modes[mode]
+    def result(score, dimension=512):
+        same = score >= req.threshold
         return {
-            "threshold": req.threshold,
-            "device": f"{device.upper()} ({device_name})",
-            "model_name": selected['name'],
-            "mode": mode,
-            "use_leace": mode == 'leace',
-            "modes": modes,
-            "soup_raw": result(sim_my),
-            "soup_leace": result(sim_leace),
-            "id_hard_positive": result(sim_hp),
-            "dual_branch": result(scores['dual'], 1280),
-            "dual_hard_positive": result(scores['dual_hp'], 1280),
-            "styleid": result(sim_off, 768),
-            "soup": result(scores[mode], selected['dimension']),
-            "comparison": {"delta": round(scores[mode] - sim_off, 4)},
+            'similarity': score,
+            'is_same': same,
+            'label': 'Cùng danh tính' if same else 'Khác danh tính',
+            'dim': f'{dimension} chiều',
         }
-    except Exception as e:
-        return JSONResponse({"error": str(e)}, status_code=500)
 
-# ------------------------------------------------------------------------------
-# 4. GIAO DIỆN WEB TRUNG TÍNH, CHUẨN MỰC HỌC THUẬT
-# ------------------------------------------------------------------------------
+    modes = {
+        key: {**result(score, MODEL_MODES[key]['dimension']), **MODEL_MODES[key]}
+        for key, score in scores.items()
+    }
+    response = {
+        'threshold': req.threshold,
+        'device': f'{DEVICE.upper()} ({DEVICE_NAME})',
+        'model_name': modes[mode]['name'],
+        'mode': mode,
+        'use_leace': False,
+        'modes': modes,
+        'styleid': result(styleid, 768),
+        'soup_raw': modes['raw'],
+        'dual_branch': modes['dual'],
+        'soup': modes[mode],
+        'comparison': {'delta': round(scores[mode] - styleid, 4)},
+    }
+    if adapted is not None:
+        response['id_hard_positive'] = result(adapted)
+        response['dual_hard_positive'] = modes['dual_hp']
+    return response
+
+
 HTML_PAGE = """
 <!DOCTYPE html>
 <html lang="vi">
@@ -353,7 +286,7 @@ HTML_PAGE = """
             </div>
             <div class="flex items-center gap-2 text-xs">
                 <span class="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">
-                    Mô hình: <span id="activeModelBadge" class="font-medium text-slate-100">Dual-Branch + Hard-Positive</span>
+                    Mô hình: <span id="activeModelBadge" class="font-medium text-slate-100">Dual-Branch</span>
                 </span>
                 <span class="px-2.5 py-1 rounded bg-slate-800 border border-slate-700 text-slate-300">
                     Thiết bị: <span id="deviceBadge" class="font-medium text-slate-100">CPU</span>
@@ -369,17 +302,17 @@ HTML_PAGE = """
         <div class="panel rounded-lg p-4 mb-6">
             <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
                 <div class="text-xs font-medium text-slate-300">
-                    Tập dữ liệu mẫu thử nghiệm:
+                    Cặp ảnh mẫu LFW View 2
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <button onclick="loadPreset('1')" class="px-3 py-1.5 text-xs rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition">
-                        Cặp 1: Ảnh thật vs Tranh vẽ (Cùng danh tính)
+                    <button onclick="loadPreset('lfw-1342')" class="preset-button px-3 py-1.5 text-xs rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition">
+                        Cùng người · một ảnh đeo kính râm
                     </button>
-                    <button onclick="loadPreset('2')" class="px-3 py-1.5 text-xs rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition">
-                        Cặp 2: SKSF-A Ký họa chì (Cùng danh tính)
+                    <button onclick="loadPreset('lfw-0557')" class="preset-button px-3 py-1.5 text-xs rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition">
+                        Khác người · cặp khó
                     </button>
-                    <button onclick="loadPreset('3')" class="px-3 py-1.5 text-xs rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition">
-                        Cặp 3: SKSF-A Khác người (Khác danh tính)
+                    <button onclick="loadPreset('lfw-0000')" class="preset-button px-3 py-1.5 text-xs rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition">
+                        Cùng người · cặp đối chứng
                     </button>
                 </div>
             </div>
@@ -443,10 +376,9 @@ HTML_PAGE = """
                 <div>
                     <label for="soupMode" class="text-xs text-slate-300">Cấu hình so sánh</label>
                     <select id="soupMode" onchange="changeSoupMode()" class="block mt-1 p-2 rounded bg-slate-800 text-slate-100 text-xs border border-slate-600">
-                        <option value="dual_hp" selected>Dual-Branch + Hard-Positive</option>
-                        <option value="dual">Dual-Branch</option>
+                        <option value="dual_hp" disabled>Dual-Branch + Hard-Positive</option>
+                        <option value="dual" selected>Dual-Branch</option>
                         <option value="raw">Disentangle ID512</option>
-                        <option value="leace">Disentangle + LEACE</option>
                     </select>
                 </div>
                 <div>
@@ -456,13 +388,13 @@ HTML_PAGE = """
                     </button>
                 </div>
             </div>
-            <p class="text-xs text-slate-400 mt-3">Cấu hình cuối LFW kết hợp 50% điểm StyleID và 50% điểm ID sau Hard-Positive. Ngưỡng mặc định 0,30 tương ứng cột Acc@0.3 trong bảng kiểm chứng và có thể điều chỉnh.</p>
+            <p class="text-xs text-slate-400 mt-3">Chọn một cặp LFW để so sánh với Dual-Branch + Hard-Positive. Ngưỡng mặc định 0,30 tương ứng cột Acc@0.3 trong bảng kiểm chứng.</p>
         </div>
 
         <!-- Loading -->
         <div id="loadingBox" class="hidden text-center py-8">
             <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-sky-500 border-t-transparent mb-2"></div>
-            <p class="text-xs text-slate-400">Đang trích xuất đặc trưng và tính toán tương đồng...</p>
+            <p class="text-xs text-slate-400">Đang nạp dữ liệu hoặc tính điểm tương đồng…</p>
         </div>
 
         <!-- Results Container -->
@@ -593,6 +525,34 @@ HTML_PAGE = """
         let img1Data = null;
         let img2Data = null;
         let lastResult = null;
+        let activePreset = null;
+        let inputVersion = 0;
+        let busy = false;
+
+        function setBusy(value) {
+            busy = value;
+            document.querySelectorAll('.preset-button, #btnCompare, #soupMode').forEach(control => {
+                control.disabled = value;
+            });
+            document.getElementById('loadingBox').classList.toggle('hidden', !value);
+        }
+
+        function invalidateResult() {
+            lastResult = null;
+            document.getElementById('resultsContainer').classList.add('hidden');
+        }
+
+        function useCustomImages() {
+            inputVersion++;
+            activePreset = null;
+            invalidateResult();
+            document.getElementById('presetDesc').innerText = 'Ảnh tải lên';
+            document.getElementById('presetGroundTruth').innerText = '';
+            const selector = document.getElementById('soupMode');
+            selector.querySelector('[value="dual_hp"]').disabled = true;
+            if (selector.value === 'dual_hp') selector.value = 'dual';
+            changeSoupMode();
+        }
 
         function setupDropzone(zoneId, fileInputId, imgNum) {
             const zone = document.getElementById(zoneId);
@@ -621,6 +581,7 @@ HTML_PAGE = """
             if (!files || files.length === 0) return;
             const reader = new FileReader();
             reader.onload = function(e) {
+                useCustomImages();
                 setImagePreview(num, e.target.result);
             };
             reader.readAsDataURL(files[0]);
@@ -643,6 +604,7 @@ HTML_PAGE = """
         }
 
         function clearImage(num) {
+            useCustomImages();
             if (num === 1) {
                 img1Data = null;
                 document.getElementById('preview1').src = '';
@@ -661,19 +623,31 @@ HTML_PAGE = """
         }
 
         async function loadPreset(presetId) {
+            if (busy) return;
+            const version = ++inputVersion;
+            setBusy(true);
             try {
                 const res = await fetch(`/api/preset/${presetId}`);
                 const data = await res.json();
-                if (data.img1 && data.img2) {
-                    setImagePreview(1, data.img1);
-                    setImagePreview(2, data.img2);
-                    document.getElementById('presetDesc').innerText = "Mô tả: " + data.desc;
-                    document.getElementById('presetGroundTruth').innerText = "Thực tế: " + data.ground_truth;
-                    runComparison();
-                }
+                if (version !== inputVersion) return;
+                if (!res.ok) throw new Error(data.detail || res.status);
+                invalidateResult();
+                setImagePreview(1, data.img1);
+                setImagePreview(2, data.img2);
+                activePreset = presetId;
+                document.getElementById('presetDesc').innerText = data.desc;
+                document.getElementById('presetGroundTruth').innerText = data.ground_truth;
+                const selector = document.getElementById('soupMode');
+                selector.querySelector('[value="dual_hp"]').disabled = false;
+                selector.value = 'dual_hp';
+                changeSoupMode();
             } catch (err) {
-                alert("Không nạp được preset: " + err);
+                alert("Không nạp được cặp LFW: " + err.message);
+                return;
+            } finally {
+                setBusy(false);
             }
+            runComparison();
         }
 
         function updateThreshold(val) {
@@ -685,43 +659,41 @@ HTML_PAGE = """
         }
 
         async function runComparison() {
+            if (busy) return;
             if (!img1Data || !img2Data) {
                 alert("Vui lòng tải lên cả 2 ảnh hoặc chọn một cặp ảnh mẫu.");
                 return;
             }
 
             const th = parseFloat(document.getElementById('thresholdSlider').value);
-            const btn = document.getElementById('btnCompare');
-            const loading = document.getElementById('loadingBox');
-            const results = document.getElementById('resultsContainer');
-
-            btn.disabled = true;
-            loading.classList.remove('hidden');
-            results.classList.add('hidden');
+            const version = inputVersion;
+            const images = activePreset ? {preset_id: activePreset}
+                : {img1_base64: img1Data, img2_base64: img2Data};
+            setBusy(true);
+            invalidateResult();
 
             try {
                 const res = await fetch('/api/compare', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        img1_base64: img1Data,
-                        img2_base64: img2Data,
+                        ...images,
                         threshold: th,
                         mode: document.getElementById('soupMode').value
                     })
                 });
                 const data = await res.json();
+                if (version !== inputVersion) return;
 
                 if (!res.ok || data.error) {
-                    throw new Error(data.error || ("Mã lỗi: " + res.status));
+                    throw new Error(data.detail || data.error || ("Mã lỗi: " + res.status));
                 }
                 lastResult = data;
                 displayResults(data);
             } catch (err) {
                 alert("Lỗi khi xử lý: " + err.message);
             } finally {
-                btn.disabled = false;
-                loading.classList.add('hidden');
+                setBusy(false);
             }
         }
 
@@ -732,10 +704,10 @@ HTML_PAGE = """
         }
 
         function recalcWithThreshold(th) {
-            if (!lastResult) return;
-            const simOff = lastResult.styleid.similarity;
             const mode = document.getElementById('soupMode').value;
-            const selected = lastResult.modes[mode];
+            const selected = lastResult?.modes[mode];
+            if (!selected) return;
+            const simOff = lastResult.styleid.similarity;
             const simSoup = selected.similarity;
             const title = selected.name;
             document.getElementById('soupTitle').innerText = title;
@@ -750,7 +722,7 @@ HTML_PAGE = """
             const component = mode === 'dual_hp' ? lastResult.id_hard_positive : lastResult.soup_raw;
             document.getElementById('soupBothScores').innerText = selected.dimension === 1280
                 ? `StyleID: ${simOff.toFixed(4)} · ID${mode === 'dual_hp' ? ' + HP' : ''}: ${component.similarity.toFixed(4)} · 50/50`
-                : `ID512: ${lastResult.soup_raw.similarity.toFixed(4)} · LEACE: ${lastResult.soup_leace.similarity.toFixed(4)}`;
+                : `ID512: ${lastResult.soup_raw.similarity.toFixed(4)}`;
             const delta = simSoup - simOff;
 
             const isSameOff = simOff >= th;
@@ -799,12 +771,13 @@ HTML_PAGE = """
             document.getElementById('activeModelBadge').innerText = title;
             document.getElementById('soupTitle').innerText = title;
             document.getElementById('soupTableTitle').innerText = title;
-            if (lastResult) recalcWithThreshold(parseFloat(document.getElementById('thresholdSlider').value));
+            if (!lastResult) return;
+            if (lastResult.modes[selector.value]) {
+                recalcWithThreshold(parseFloat(document.getElementById('thresholdSlider').value));
+            } else {
+                runComparison();
+            }
         }
-
-        window.addEventListener('DOMContentLoaded', () => {
-            loadPreset('1');
-        });
     </script>
 </body>
 </html>
@@ -821,5 +794,5 @@ def open_browser():
 
 if __name__ == '__main__':
     print("Web demo khoi chay tai: http://localhost:8000")
-    threading.Thread(target=open_browser, daemon=True).start()
+    Thread(target=open_browser, daemon=True).start()
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")

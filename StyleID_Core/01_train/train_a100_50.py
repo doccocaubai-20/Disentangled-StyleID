@@ -28,7 +28,9 @@ from PIL import Image
 import tqdm
 
 # 1. Kiểm tra phần cứng A100 80GB
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if not torch.cuda.is_available() or not torch.cuda.is_bf16_supported():
+    raise RuntimeError('This A100 recipe requires CUDA with BF16 support.')
+device = 'cuda'
 gpu_name = torch.cuda.get_device_name(0)
 vram_gb = torch.cuda.get_device_properties(0).total_memory / (1024**3)
 print("="*80)
@@ -181,7 +183,7 @@ ce_loss, supcon_fn = nn.CrossEntropyLoss(), SupConLoss().to(device)
 train_dataset = MultiStyleDataset(MEGA_DATA_DIR)
 train_loader = DataLoader(
     train_dataset, batch_size=128, shuffle=True,  # BATCH SIZE 128 CỰC MẠNH
-    collate_fn=collate_fn, drop_last=True, num_workers=8, pin_memory=True
+    collate_fn=collate_fn, drop_last=True, num_workers=0 if os.name == 'nt' else 8, pin_memory=True
 )
 angular_head = AngularHead(512, len(train_dataset.class_to_idx)).to(device)
 
@@ -217,5 +219,5 @@ torch.save(model.state_dict(), 'disentangled_lora_clip.pt')
 torch.save(head.state_dict(), 'disentangled_head.pt')
 torch.save(model.state_dict(), f"{SAVE_DIR}/disentangled_lora_clip_a100_final.pt")
 torch.save(head.state_dict(), f"{SAVE_DIR}/disentangled_head_a100_final.pt")
-print(f"\n--> 💾 ĐÃ LƯU TRỌNG SỐ VÔ ĐỊCH VÀO GOOGLE DRIVE: {SAVE_DIR}!")
+print(f"\n--> Đã lưu checkpoint vào {SAVE_DIR}")
 

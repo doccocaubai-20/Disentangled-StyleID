@@ -1,13 +1,7 @@
-"""Load the frozen Hard-Positive adapter used by the final Colab LFW row."""
-import json
-from pathlib import Path
-
-import numpy as np
+"""Load the frozen Hard-Positive head used by the final Colab LFW row."""
 import torch
 from torch import nn
 from torch.nn import functional as F
-
-from demo_leace import file_sha256
 
 
 class ResidualMetric(nn.Module):
@@ -24,21 +18,18 @@ class ResidualMetric(nn.Module):
         return F.normalize(x + delta, dim=1)
 
 
-def load_hard_positive(weights_path, metadata_path, device):
-    metadata = json.loads(Path(metadata_path).read_text(encoding='utf-8'))
-    if file_sha256(weights_path) != metadata['weights_sha256']:
-        raise ValueError('Hard-Positive adapter checksum mismatch')
-    with np.load(weights_path, allow_pickle=False) as weights:
-        if set(weights.files) != {'w_down', 'w_up'}:
-            raise ValueError('Unexpected Hard-Positive adapter fields')
-        down = weights['w_down'].copy()
-        up = weights['w_up'].copy()
-    if down.shape != (32, 512) or up.shape != (512, 32):
-        raise ValueError('Expected rank-32 ID512 Hard-Positive adapter')
-    if not np.isfinite(down).all() or not np.isfinite(up).all():
-        raise ValueError('Nonfinite Hard-Positive adapter')
-    model = ResidualMetric(limit=metadata['residual_limit'])
-    with torch.no_grad():
-        model.down.weight.copy_(torch.from_numpy(down))
-        model.up.weight.copy_(torch.from_numpy(up))
-    return model.to(device=device, dtype=torch.float32).eval(), metadata
+def load_hard_positive(path, device, *, soup_sha256, base_revision, styleid_revision):
+    checkpoint = torch.load(path, map_location='cpu', weights_only=True)
+    expected = {
+        'dimension': 512,
+        'rank': 32,
+        'residual_limit': 0.25,
+        'checkpoint_sha256': soup_sha256,
+        'base_revision': base_revision,
+        'styleid_revision': styleid_revision,
+    }
+    if any(checkpoint.get(key) != value for key, value in expected.items()):
+        raise ValueError('Hard-Positive checkpoint metadata differs from the final LFW configuration')
+    model = ResidualMetric(limit=checkpoint['residual_limit'])
+    model.load_state_dict(checkpoint['state_dict'], strict=True)
+    return model.requires_grad_(False).to(device=device, dtype=torch.float32).eval()

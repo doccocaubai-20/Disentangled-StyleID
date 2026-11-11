@@ -1,9 +1,9 @@
 {
-  "release": "2026-11-07",
+  "release": "2026-11-12",
   "purpose": "Final Colab four-model benchmark, training recipes, Soup creation and Dual-Branch + Hard-Positive web demo",
   "entrypoints": {
     "evaluation_notebook": "03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb",
-    "no_ortho_training": "01_train/colab/Dong2_Train_ID_Style_Khong_Ortho.ipynb",
+    "no_ortho_training": "01_train/train_no_ortho.py",
     "web_demo": "04_demo/server.py",
     "results": "03_benchmark/result_benchmark.md",
     "model_soup": "02_soup/model_soup_averaging.py"
@@ -25,35 +25,51 @@
     "00_docs/KET_QUA_COLAB.md": "2a8344cd0d5c422b87349fbaabc165a7d4228fcb90bee100f892b3d549f84488",
     "00_docs/KET_QUA_KIEM_CHUNG_4_MODELS_COLAB.docx": "c1a33533d2f655348d07abd87985427990dc825d1bfa03cd8780b9141710f533",
     "00_docs/STYLEID_ORIGINAL_README.md": "14e7fc28db13a2d2e26b44028a6ff5bdf8c87d1ff17c5e986f3bc00ea4025462",
-    "00_docs/TRAIN_VA_TRONG_SO_DRIVE.md": "27c607ac30fdcbd14b7b182a6a4170a5ea54b29093ada9a896b263997da2b6a6",
-    "01_train/colab/Dong2_Train_ID_Style_Khong_Ortho.ipynb": "c500f315bd3a6d49bac162539757345cadc07175d997df3671f7f24a04e3aacb",
-    "01_train/train_a100_50.py": "abfbebbccdd59878221b7eed352fe5f2342237f696d364a5a8f480f0fa16b76e",
-    "01_train/train_shard_0_den_6.py": "25ffe4bd7976f5a2402a12b4156dcf584b205139047ef4a264af38805dd9a681",
+    "00_docs/TRAIN_VA_TRONG_SO_DRIVE.md": "38113270168c86bc88ae5f784d70f5e7a30328268f767d3a11fee16d2f07680c",
+    "01_train/train_a100_50.py": "b2bf9a0a85ce6e8d33e3c1cdc956b249a37b14229f584b8c3887944aba54a83d",
+    "01_train/train_no_ortho.py": "fbe3421352cd393cda3465fd24ac73f9d794950f4e09654f09087f74fee6a494",
+    "01_train/train_shard_0_den_6.py": "42b520effb9b32935f87c566cb1b88a85b91a9e3311b7bbe8021252c23f6e39b",
     "02_soup/model_soup_averaging.py": "5a22e651c79a6d0fb7b662291fcb8dc60f423d06ecdb5136e1a196a7fc09e6f4",
-    "03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb": "06b0236cf33f563f2eb76d3327a3594429ceb863cd0f3769804d5e74b819643b",
+    "03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb": "6975bcf40b53a78907aafcbcb2502ea6f2c4914f6da29bb682c380cda9f986d1",
     "03_benchmark/result_benchmark.md": "742e9acda327588b1b4799b76a6e2ea63f18459e3ab9305cac92cddcb5307885",
-    "04_demo/.env.example": "bce51f7df855616fda7f3d2203eebc068c2f22565651fbb3866822a94ef1b7c2",
-    "04_demo/demo_hard_positive.py": "014f93ee9f3adb4c1d401f3f3b92fcbfb13f1dc5938627ff5061f5055fbb940a",
-    "04_demo/demo_leace.py": "2ea2df989d160fd445ca18dc579e632fe76539556667684146220a0a82f8923b",
-    "04_demo/requirements.txt": "938886d47c16c878e8a39b8ee2ff1cee34811733c205a5d3e1a9f41a6b82272a",
-    "04_demo/server.py": "2673fa9eb78e7ed355f83efc178baac09952c7557d06680a7041b795bf4a62b0",
-    "README_VI.md": "4f351c85d4b34c47b76186adf9edda685753219509c1e5fb5126e6a0d083cbdd",
-    "assets/lfw_hard_positive_adapter.npz": "7037174863dea038321fcfa192aeb01df0583ee622113981f0d38d0e593efa39",
-    "assets/lfw_hard_positive_metadata.json": "d7d06cfb8a799e33a77a7ff725657b64e155870889fb7566c5c0ac3ec5cffe9d",
-    "assets/soup_leace_metadata.json": "102f90dde8b2a35beb579161f1c9763b2d247caed432f96ca4fc85fa60697311",
-    "assets/soup_leace_operator.npz": "ee22bc2f2b3e84cbcade7d113b1898b5e76455e54407125b64ffe52e3c7ee6f8"
+    "04_demo/.env.example": "f7b818185877fd80a106129efc48d3e7901864941393254e8e646811e183688c",
+    "04_demo/checkpoints.py": "7c08ff49c4269cacc7977c28c2f49beaed8af085bc69aac35c3c9d57dc776730",
+    "04_demo/demo_hard_positive.py": "ff0c978360e088ba2bada6011c611d78b9255fdeb6470d40179d4fa9748d7243",
+    "04_demo/lfw_presets.py": "0a4f2491f6909c07921a82f228a01e122e3400c26636a7d3de5750b0459c6040",
+    "04_demo/requirements.txt": "e4bce4abdbfc3181221b3a01fb78eb2f31c9a82506fbd461cffc7a1223d12c2a",
+    "04_demo/server.py": "8e0bc2de0b779364008eb9ccff7c54d4d55d72d6b94761b83d26278e66e36414",
+    "README_VI.md": "dc0977457ba6c85df7f51ed0fe9c93330e1eadf9fc14bae9d037a232dbbb5046"
   },
   "web_demo": {
-    "default_mode": "dual_hp",
+    "default_mode": {
+      "lfw_preset": "dual_hp",
+      "uploaded_images": "dual"
+    },
     "default_threshold": 0.3,
     "comparison_dimension": 1280,
-    "scoring": "0.5 StyleID cosine + 0.5 Hard-Positive(ID512) cosine",
-    "adapter": "assets/lfw_hard_positive_adapter.npz",
-    "adapter_metadata": "assets/lfw_hard_positive_metadata.json",
+    "lfw_scoring": "0.5 StyleID cosine + 0.5 Hard-Positive(Soup ID512) cosine",
+    "adapter": {
+      "filename": "lfw_hard_positive_adapter.pt",
+      "drive_file_id": "12saHW4q3RPIVwel2uJpsnsgv_YJDZLA8",
+      "sha256": "363ae0e66630711a66a5836407a71d5f704317fd9824cdee409e8d44a1383c1e"
+    },
+    "lfw_presets": [
+      "lfw-1342",
+      "lfw-0557",
+      "lfw-0000"
+    ],
     "other_modes": [
       "dual",
-      "raw",
-      "leace"
+      "raw"
     ]
+  },
+  "checkpoint_drive": {
+    "folder_id": "11DPH1P4QDKjiZwaAzJsdigK2AAPQezD1",
+    "subfolders": {
+      "no_ortho": "1MCeXXLq8qWo89KZoU-bORtNYxWP5Deod",
+      "ortho": "1cjxJQxkEOzlXWHWw6K1G-Z_3k3VE50aE",
+      "soup": "1SrGqDecmDIpsqqIP_sq_glpbh6t8hMRZ",
+      "hard-positive-adapter": "1Id5FCJer80UQM8o_FZvXoLJ71opmzyqX"
+    }
   }
 }

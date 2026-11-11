@@ -37,7 +37,6 @@ print(f'--> Đang sử dụng thiết bị: {device.upper()}')
 
 TEMP_TRAIN_DIR = "temp_train_data"
 VAL_DIR = "permanent_val_data"
-DRIVE_SAVE_DIR = "/content/drive/MyDrive"
 #1
 def extract_shard(shard_idx):
     tar_filename = f"styleid-s-{shard_idx:06d}.tar"
@@ -246,7 +245,7 @@ def train_shard(shard_idx=3, epochs_per_shard=2, batch_size=28, accumulation_ste
 
     trainable_params = [p for p in model.parameters() if p.requires_grad] + list(disentangle_head.parameters()) + list(angular_head.parameters())
     optimizer = torch.optim.AdamW(trainable_params, lr=1.5e-4)
-    scaler = torch.amp.GradScaler('cuda')
+    scaler = torch.amp.GradScaler('cuda', enabled=device == 'cuda')
 
     for epoch in range(epochs_per_shard):
         model.train(); disentangle_head.train()
@@ -255,7 +254,7 @@ def train_shard(shard_idx=3, epochs_per_shard=2, batch_size=28, accumulation_ste
         for step, (images, id_labels, style_labels) in enumerate(pbar):
             id_labels, style_labels = id_labels.to(device), style_labels.to(device)
             pv = processor(images=images, return_tensors='pt')['pixel_values'].to(device)
-            with torch.amp.autocast('cuda'):
+            with torch.amp.autocast(device, enabled=device == 'cuda'):
                 feat = get_features(model, pv)
                 z_id, z_style, style_logits = disentangle_head(feat)
                 loss_id = ce_loss(angular_head(z_id, id_labels), id_labels) + supcon_fn(z_id, id_labels)
@@ -268,7 +267,7 @@ def train_shard(shard_idx=3, epochs_per_shard=2, batch_size=28, accumulation_ste
                 scaler.step(optimizer); scaler.update(); optimizer.zero_grad()
             pbar.set_postfix({'loss': f"{(loss.item()*accumulation_steps):.4f}"})
 
-    # 4. Lưu cục bộ và TỰ ĐỘNG ĐẨY THẲNG VỀ GOOGLE DRIVE
+    # 4. Lưu checkpoint để tiếp tục huấn luyện shard sau.
     torch.save(model.state_dict(), 'disentangled_lora_clip.pt')
     torch.save(disentangle_head.state_dict(), 'disentangled_head.pt')
 
