@@ -31,7 +31,7 @@
     "01_train/train_shard_0_den_6.py": "25ffe4bd7976f5a2402a12b4156dcf584b205139047ef4a264af38805dd9a681",
     "02_soup/model_soup_averaging.py": "5a22e651c79a6d0fb7b662291fcb8dc60f423d06ecdb5136e1a196a7fc09e6f4",
     "03_benchmark/colab/Kiem_Chung_Full_4Models_Colab.ipynb": "06b0236cf33f563f2eb76d3327a3594429ceb863cd0f3769804d5e74b819643b",
-    "03_benchmark/result_benchmark.md": "5a29f6a9be150a1a222322d5d13c2948266baa462ab7af6b3be25933d4b66a2c",
+    "03_benchmark/result_benchmark.md": "742e9acda327588b1b4799b76a6e2ea63f18459e3ab9305cac92cddcb5307885",
     "04_demo/.env.example": "bce51f7df855616fda7f3d2203eebc068c2f22565651fbb3866822a94ef1b7c2",
     "04_demo/demo_hard_positive.py": "014f93ee9f3adb4c1d401f3f3b92fcbfb13f1dc5938627ff5061f5055fbb940a",
     "04_demo/demo_leace.py": "2ea2df989d160fd445ca18dc579e632fe76539556667684146220a0a82f8923b",
