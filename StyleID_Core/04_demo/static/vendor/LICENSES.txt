@@ -1,0 +1,6 @@
+react 18.3.1, react-dom 18.3.1 - MIT - Copyright (c) Facebook, Inc. and its affiliates
+antd 5.24.9 - MIT - Copyright (c) 2015-present Ant UED
+dayjs 1.11.13 - MIT - Copyright (c) 2018-present iamkun
+htm 3.1.1 - Apache-2.0 - Copyright Google Inc.
+
+Source: https://cdn.jsdelivr.net/npm/

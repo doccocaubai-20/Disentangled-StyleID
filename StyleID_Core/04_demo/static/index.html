@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>StyleID và Dual-Branch + Hard-Positive</title>
+    <link rel="icon" href="data:,">
+    <script>
+        // Chọn theme trước khi vẽ để trang không nháy sai màu.
+        (function () {
+            let mode = 'system';
+            try { mode = localStorage.getItem('styleid-theme') || mode; } catch (_) {}
+            const dark = mode === 'dark' ||
+                (mode !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        })();
+    </script>
+    <link rel="stylesheet" href="/static/vendor/reset.css">
+    <link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+    <div id="root"></div>
+    <script src="/static/vendor/react.min.js"></script>
+    <script src="/static/vendor/react-dom.min.js"></script>
+    <script src="/static/vendor/dayjs.min.js"></script>
+    <script src="/static/vendor/antd.min.js"></script>
+    <script src="/static/vendor/htm.min.js"></script>
+    <script src="/static/app.js"></script>
+</body>
+</html>

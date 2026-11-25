@@ -37,7 +37,17 @@
     "04_demo/demo_hard_positive.py": "ff0c978360e088ba2bada6011c611d78b9255fdeb6470d40179d4fa9748d7243",
     "04_demo/lfw_presets.py": "0a4f2491f6909c07921a82f228a01e122e3400c26636a7d3de5750b0459c6040",
     "04_demo/requirements.txt": "e4bce4abdbfc3181221b3a01fb78eb2f31c9a82506fbd461cffc7a1223d12c2a",
-    "04_demo/server.py": "8e0bc2de0b779364008eb9ccff7c54d4d55d72d6b94761b83d26278e66e36414",
+    "04_demo/server.py": "4134198bd6918807cd45b4facc6cbca38af7c843e359f2298d17f79d3ff9e886",
+    "04_demo/static/app.css": "d6633a358da90e42d3e63e507b46ce43738779f04aab5e25ee545175f982bf2c",
+    "04_demo/static/app.js": "82450e14e01d3faf10137487f5abc825c9db5caa165f96eda012f7f596998d8e",
+    "04_demo/static/index.html": "37112e6985a134afbb991079d6b2904d6ffcb818d96bf21c87ddd676a1e3fe58",
+    "04_demo/static/vendor/LICENSES.txt": "22506fc99b1d5d05c640a512dee86d791ef7d07842d1c5825cd94447b3a27fb0",
+    "04_demo/static/vendor/antd.min.js": "c044e0686f2158d13368980a9b6ba5daa5d22171b7b0ee747d4f1aded82b294b",
+    "04_demo/static/vendor/dayjs.min.js": "9cfdb93f38afcf2d076abecd66d32bfd3383cdf1967654ebc26a26605daf4173",
+    "04_demo/static/vendor/htm.min.js": "7a31776e04bd4afde0d4308177d26f377716fcf7e4bd70be590746d6aa594f08",
+    "04_demo/static/vendor/react-dom.min.js": "35f4f974f4b2bcd44da73963347f8952e341f83909e4498227d4e26b98f66f0d",
+    "04_demo/static/vendor/react.min.js": "d949f1c3687aedadcedac85261865f29b17cd273997e7f6b2bfc53b2f9d4c4dd",
+    "04_demo/static/vendor/reset.css": "76d99c4599dd3918bdee15703de7a9f0cc7fc490b4f55fc0ef02538b522e5109",
     "README_VI.md": "dc0977457ba6c85df7f51ed0fe9c93330e1eadf9fc14bae9d037a232dbbb5046"
   },
   "web_demo": {
